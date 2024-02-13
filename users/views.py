@@ -275,11 +275,17 @@ class UserCountAPI(generics.ListAPIView):
           def list(self, request, *args, **kwargs):
                     try:
                               total_users = User.objects.count()
+                              artists = User.objects.filter(utypeartist=1).count()
+                              organizers = User.objects.filter(utypeorganizer=1).count()
+                              users = User.objects.filter(utypeuser=1).count()
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Total count of users',
-                                        'count': total_users,
+                                        'message': 'Total count of all users',
+                                        'total_count': total_users,
+                                        'artists': artists,
+                                        'organizers': organizers,
+                                        'users': users,
                               }
                               return Response(api_response)
                     except Exception as e:
