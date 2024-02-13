@@ -27,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
                                         representation[field] = representation[field].split(',')
 
                     return representation
+
 class UserLoginSerializer(serializers.Serializer):
     uname = serializers.CharField(required=True)
     upassword = serializers.CharField(required=True)
@@ -35,8 +36,12 @@ class UserLoginSerializer(serializers.Serializer):
     utypeuser = serializers.IntegerField(required=True)
 
 class CarouselSerializer(serializers.Serializer):
-          image1 = serializers.CharField()
-          image2 = serializers.CharField()
-          image3 = serializers.CharField()
-          image4 = serializers.CharField()
-          image5 = serializers.CharField()
+          image1 = serializers.CharField(required=False)
+          image2 = serializers.CharField(required=False)
+          image3 = serializers.CharField(required=False)
+          image4 = serializers.CharField(required=False)
+          image5 = serializers.CharField(required=False)
+          def validate(self, attrs):
+                    # Remove empty fields from the validated data
+                    validated_data = {key: value for key, value in attrs.items() if value.strip()}
+                    return validated_data

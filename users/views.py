@@ -295,47 +295,85 @@ class CarouselAPI(APIView):
     serializer_class = CarouselSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+              serializer = self.serializer_class(data=request.data)
 
-        if serializer.is_valid():
-            # Access each image field separately
-            image1 = serializer.validated_data.get('image1')
-            image2 = serializer.validated_data.get('image2')
-            image3 = serializer.validated_data.get('image3')
-            image4 = serializer.validated_data.get('image4')
-            image5 = serializer.validated_data.get('image5')
+              if serializer.is_valid():
+                        base64_codes = serializer.validated_data.get('base64_codes')
 
-            # Specify the folder path for storing image files
-            folder_name = 'carousel_images'
-            folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+                        # Specify the folder path for storing image files
 
-            # Create the folder if it doesn't exist
-            os.makedirs(folder_path, exist_ok=True)
+                        folder_name = 'carousel_images'
+                        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
 
-            # Loop through each image and save it as an image file
-            saved_file_paths = []
-            for index, image_data in enumerate([image1, image2, image3, image4, image5]):
-                image_name = f'image{index}.png'  # Change the extension based on your requirements
-                save_path = os.path.join(folder_path, image_name)
+                        # Create the folder if it doesn't exist
+                        os.makedirs(folder_path, exist_ok=True)
 
-                try:
-                    # Write the base64 code to the file
-                    with open(save_path, 'wb') as image_file:
-                        image_file.write(base64.b64decode(image_data))
-                except Exception as e:
-                    # Handle file writing errors
-                    error_message = f"Error saving image {index}: {str(e)}"
-                    return Response({"error": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                        # Loop through each base64 code and save it as a separate file
+                        saved_file_paths = []
+                        for index, base64_code in enumerate(base64_codes):
+                                  if base64_code is None:
+                                            continue  # Skip empty fields
 
-                saved_file_paths.append(save_path)
+                                  image_name = f'image{index}.png'  # Change the extension based on your requirements
+                                  save_path = os.path.join(folder_path, image_name)
 
-            response_data = {
-                'status': 'success',
-                'code': status.HTTP_201_CREATED,
-                'message': 'Base64 codes converted to images successfully',
-                'saved_file_paths': saved_file_paths
-            }
-            return Response(response_data, status=status.HTTP_201_CREATED)
+                                  try:
+                                            # Write the base64 code to the file
+                                            with open(save_path, 'wb') as image_file:
+                                                      image_file.write(base64.b64decode(base64_code))
+                                  except Exception as e:
+                                            # Handle file writing errors
+                                            error_message = f"Error saving image {index}: {str(e)}"
+                                            return Response({"error": error_message},
+                                                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                                  saved_file_paths.append(save_path)
+
+                        response_data = {
+                                  'status': 'success',
+                                  'code': status.HTTP_201_CREATED,
+                                  'message': 'Base64 codes converted to images successfully',
+                                  'saved_file_paths': saved_file_paths
+                        }
+                        return Response(response_data)
+
+              return Response(serializer.errors)
+
+    def get(self, request, *args, **kwargs):
+              # Specify the folder path where images are stored
+              folder_name = 'carousel_images'
+              folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+
+              # Check if the folder exists
+              if not os.path.exists(folder_path):
+                        return Response({"error": "Image folder not found"}, status=status.HTTP_404_NOT_FOUND)
+
+              # Get a list of image files in the folder
+              image_files = os.listdir(folder_path)
+
+              # Initialize a dictionary to store base64 encoded strings of images with their corresponding filenames
+              image_data = {}
+
+              # Loop through each image file and read its contents
+              for image_file in image_files:
+                        image_path = os.path.join(folder_path, image_file)
+                        try:
+                                  # Read the image file and encode it in base64
+                                  with open(image_path, 'rb') as f:
+                                            image_bytes = f.read()
+                                            image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                                            image_data[image_file] = image_base64
+                        except Exception as e:
+                                  # Handle file reading errors
+                                  error_message = f"Error reading image {image_file}: {str(e)}"
+                                  return Response({"error": error_message},
+                                                  status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+              # Return the dictionary containing filenames and their corresponding base64 encoded image strings
+              response_data = {
+                        'status': 'success',
+                        'code': status.HTTP_200_OK,
+                        'base64images': image_data,
+              }
+              return Response(response_data)
 

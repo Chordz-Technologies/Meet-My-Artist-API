@@ -5,6 +5,7 @@ from users.views import UserAPI, UserLoginAPI, ArtistByCategoryAPI, CarouselAPI,
 # router = routers.DefaultRouter()
 # router.register(r'Users', UserAPI)
 
+
 urlpatterns = [
           # path('api/', include(router.urls)),
           path('allUsers/', UserAPI.as_view({'get': 'list'})),

@@ -14,7 +14,7 @@ class User(models.Model):
     utypeartist = models.IntegerField(db_column='Utypeartist', blank=True, null=True, default=0)  # Field name made lowercase.
     utypeorganizer = models.IntegerField(db_column='Utypeorganizer', blank=True, null=True, default=0)  # Field name made lowercase.
     utypeuser = models.IntegerField(db_column='Utypeuser', blank=True, null=True, default=0)  # Field name made lowercase.
-    uregistrationdate = models.DateField(db_column='Uregistrationdate', blank=True, null=True, default=datetime.date(2024,1, 1))  # Field name made lowercase.
+    uregistrationdate = models.DateField(db_column='Uregistrationdate', blank=True, null=True, default=datetime.date(2024, 1, 1))  # Field name made lowercase.
     userstatus = models.CharField(db_column='Userstatus', max_length=30, blank=True, null=True, default=' ')  # Field name made lowercase.
     usersubsdate = models.DateField(db_column='Usersubsdate', blank=True, null=True, default=datetime.date(2024, 1, 1))  # Field name made lowercase.
     ulikes = models.CharField(db_column='Ulikes', max_length=500, blank=True, null=True, default=' ')  # Field name made lowercase.
