@@ -1,9 +1,12 @@
-from rest_framework import status
+from datetime import datetime, timedelta
+
+from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from transactions.models import Atransaction, Otransaction, Utransaction
 from transactions.serializers import AtSerializer, OtSerializer, UtSerializer
+from users.models import User
 
 # Create your views here.
 
@@ -390,3 +393,237 @@ class UtransactionAPI(ModelViewSet):
                                         'message': error_msg,
                               }
                               return Response(error_response)
+
+class SubscriptionforArtist(generics.ListAPIView):
+          serializer_class = Atransaction
+
+          def get(self, request, *args, **kwargs):
+                    try:
+                              user_id = self.kwargs.get('uid')
+
+                              if user_id is None:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': status.HTTP_400_BAD_REQUEST,
+                                                  'message': 'UserID not provided',
+                                        })
+
+                              current_date = datetime.now().date()
+
+                              # Retrieve the latest transaction for the specified business_id
+                              latest_transaction = Atransaction.objects.filter(uid=user_id).order_by('-atdate').first()
+
+                              if not latest_transaction:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No transactions found for UserID {user_id}',
+                                        })
+
+                              # Check if there is an associated subscription for the latest transaction
+                              if latest_transaction.sid is None:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No latest transaction found for UserID {user_id}',
+                                        })
+
+                              # Retrieve the subscription associated with the latest transaction
+                              subscription = latest_transaction.sid
+
+                              # Retrieve subscription duration
+                              subscription_duration = subscription.sduration
+
+                              # Calculate end date for the subscription
+                              end_date = latest_transaction.atdate + timedelta(days=subscription_duration)
+
+                              # Calculate remaining days for the subscription
+                              remaining_days = max((end_date - current_date).days, 0)
+
+                              if remaining_days <= 0:
+                                        artist_status = 'Expired'
+                              else:
+                                        artist_status = 'Active'
+
+                              # Update the artist status in the User table
+                              user = User.objects.get(pk=user_id)
+                              user.artiststatus = artist_status
+                              user.save()
+
+                              # Create the response dictionary with details from the latest transaction
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_200_OK,
+                                        'message': f'Subscription details for UserID {user_id}',
+                                        'data': [{
+                                                  'end_date': end_date.strftime("%Y-%m-%d"),
+                                                  'remaining_days': remaining_days,
+                                                  'status': artist_status
+                                        }]
+                              }
+                              return Response(response_data)
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })
+
+class SubscriptionforOrganizer(generics.ListAPIView):
+          serializer_class = OtSerializer
+
+          def get(self, request, *args, **kwargs):
+                    try:
+                              user_id = self.kwargs.get('uid')
+
+                              if user_id is None:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': status.HTTP_400_BAD_REQUEST,
+                                                  'message': 'UserID not provided',
+                                        })
+
+                              current_date = datetime.now().date()
+
+                              # Retrieve the latest transaction for the specified business_id
+                              latest_transaction = Otransaction.objects.filter(uid=user_id).order_by('-otdate').first()
+
+                              if not latest_transaction:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No transactions found for UserID {user_id}',
+                                        })
+
+                              # Check if there is an associated subscription for the latest transaction
+                              if latest_transaction.sid is None:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No latest transaction found for UserID {user_id}',
+                                        })
+
+                              # Retrieve the subscription associated with the latest transaction
+                              subscription = latest_transaction.sid
+
+                              # Retrieve subscription duration
+                              subscription_duration = subscription.sduration
+
+                              # Calculate end date for the subscription
+                              end_date = latest_transaction.otdate + timedelta(days=subscription_duration)
+
+                              # Calculate remaining days for the subscription
+                              remaining_days = max((end_date - current_date).days, 0)
+
+                              if remaining_days <= 0:
+                                        organizer_status = 'Expired'
+                              else:
+                                        organizer_status = 'Active'
+
+                              # Update the artist status in the User table
+                              user = User.objects.get(pk=user_id)
+                              user.organizerstatus = organizer_status
+                              user.save()
+
+                              # Create the response dictionary with details from the latest transaction
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_200_OK,
+                                        'message': f'Subscription details for UserID {user_id}',
+                                        'data': [{
+                                                  'end_date': end_date.strftime("%Y-%m-%d"),
+                                                  'remaining_days': remaining_days,
+                                                  'status': organizer_status
+                                        }]
+                              }
+                              return Response(response_data)
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })
+
+class SubscriptionforUser(generics.ListAPIView):
+          serializer_class = UtSerializer
+
+          def get(self, request, *args, **kwargs):
+                    try:
+                              user_id = self.kwargs.get('uid')
+
+                              if user_id is None:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': status.HTTP_400_BAD_REQUEST,
+                                                  'message': 'UserID not provided',
+                                        })
+
+                              current_date = datetime.now().date()
+
+                              # Retrieve the latest transaction for the specified business_id
+                              latest_transaction = Utransaction.objects.filter(uid=user_id).order_by('-utdate').first()
+
+                              if not latest_transaction:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No transactions found for UserID {user_id}',
+                                        })
+
+                              # Check if there is an associated subscription for the latest transaction
+                              if latest_transaction.sid is None:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': f'No latest transaction found for UserID {user_id}',
+                                        })
+
+                              # Retrieve the subscription associated with the latest transaction
+                              subscription = latest_transaction.sid
+
+                              # Retrieve subscription duration
+                              subscription_duration = subscription.sduration
+
+                              # Calculate end date for the subscription
+                              end_date = latest_transaction.otdate + timedelta(days=subscription_duration)
+
+                              # Calculate remaining days for the subscription
+                              remaining_days = max((end_date - current_date).days, 0)
+
+                              if remaining_days <= 0:
+                                        user_status = 'Expired'
+                              else:
+                                        user_status = 'Active'
+
+                              # Update the artist status in the User table
+                              user = User.objects.get(pk=user_id)
+                              user.userstatus = user_status
+                              user.save()
+
+                              # Create the response dictionary with details from the latest transaction
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_200_OK,
+                                        'message': f'Subscription details for UserID {user_id}',
+                                        'data': [{
+                                                  'end_date': end_date.strftime("%Y-%m-%d"),
+                                                  'remaining_days': remaining_days,
+                                                  'status': user_status
+                                        }]
+                              }
+                              return Response(response_data)
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })

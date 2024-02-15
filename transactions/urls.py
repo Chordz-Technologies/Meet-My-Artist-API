@@ -1,5 +1,5 @@
 from django.urls import path
-from transactions.views import AtransactionAPI, OtransactionAPI, UtransactionAPI
+from transactions.views import AtransactionAPI, OtransactionAPI, UtransactionAPI, SubscriptionforArtist, SubscriptionforOrganizer, SubscriptionforUser
 
 urlpatterns = [
           path('allAtransactions/', AtransactionAPI.as_view({'get': 'list'})),
@@ -22,4 +22,9 @@ urlpatterns = [
           path('updateUtransaction/<int:pk>/', UtransactionAPI.as_view({'put': 'update'})),
           path('partialupdateUtransaction/<int:pk>/', UtransactionAPI.as_view({'patch': 'partial_update'})),
           path('deleteUtransaction/<int:pk>/', UtransactionAPI.as_view({'delete': 'destroy'})),
+
+          path('subscriptionforArtist/<int:uid>/', SubscriptionforArtist.as_view()),
+          path('subscriptionforOrganizer/<int:uid>/', SubscriptionforOrganizer.as_view()),
+          path('subscriptionforUser/<int:uid>/', SubscriptionforUser.as_view()),
+
 ]

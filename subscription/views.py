@@ -1,3 +1,4 @@
+from django.utils.datastructures import MultiValueDict
 from subscription.models import Subscription
 from subscription.serializers import SubscriptionSerializer
 from rest_framework.viewsets import ModelViewSet
@@ -136,14 +137,10 @@ class SubscriptionAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              existing_sbenefits = instance.sbenefits.split(',') if instance.sbenefits else []
-                              new_sbenefits = request.data.get('sbenefits', '').split(',')
-                              updated_sbenefits = existing_sbenefits + [sbenefits.strip() for sbenefits in new_sbenefits
-                                                                        if sbenefits.strip()]
-                              request.data['sbenefits'] = ','.join(updated_sbenefits)
                               serializer = self.get_serializer(instance, data=request.data)
                               serializer.is_valid(raise_exception=True)
                               serializer.save()
+
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
@@ -163,20 +160,14 @@ class SubscriptionAPI(ModelViewSet):
           def partial_update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              existing_benefits = instance.sbenefits.split(',') if instance.sbenefits else []
-                              # Assuming that the new benefits for subscription are provided in the request data as a comma-separated string
-                              new_sbenefits = request.data.get('sbenefits', '').split(',')
-                              updated_sbenefits = existing_benefits + [sbenefits.strip() for sbenefits in new_sbenefits
-                                                                       if sbenefits.strip()]
-                              request.data['sbenefits'] = ','.join(updated_sbenefits)
-
                               serializer = self.get_serializer(instance, data=request.data, partial=True)
                               serializer.is_valid(raise_exception=True)
                               serializer.save()
+
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Subscription updated successfully',
+                                        'message': 'Subscription partially updated successfully',
                                         'updated_subscription': serializer.data,
                               }
                               return Response(api_response)

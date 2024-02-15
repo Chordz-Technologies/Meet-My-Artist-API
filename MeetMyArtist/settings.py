@@ -101,7 +101,7 @@ DATABASES = {
 }
 
 # settings.py
-DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 10  # 10 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10 MB
 
 
 # Password validation

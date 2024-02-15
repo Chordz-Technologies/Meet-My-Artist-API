@@ -1,5 +1,6 @@
 import os
 import base64
+from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
 from django.db.models import Max, Count
 from rest_framework import status
@@ -301,49 +302,49 @@ class CarouselAPI(APIView):
     serializer_class = CarouselSerializer
 
     def post(self, request, *args, **kwargs):
-              serializer = self.serializer_class(data=request.data)
+        serializer = self.serializer_class(data=request.data)
 
-              if serializer.is_valid():
-                        base64_codes = serializer.validated_data.get('base64_codes')
+        if serializer.is_valid():
+            # Retrieve image fields from serializer data
+            images = [serializer.validated_data.get(f'image{i}', None) for i in range(1, 6)]
 
-                        # Specify the folder path for storing image files
+            # Specify the folder path for storing image files
+            folder_name = 'carousel_images'
+            folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+            os.makedirs(folder_path, exist_ok=True)
 
-                        folder_name = 'carousel_images'
-                        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+            saved_file_paths = []
+            for index, base64_code in enumerate(images):
+                if base64_code is None:
+                    continue  # Skip empty fields
 
-                        # Create the folder if it doesn't exist
-                        os.makedirs(folder_path, exist_ok=True)
+                image_name = f'image{index + 1}.png'  # Change the extension based on your requirements
+                save_path = os.path.join(folder_path, image_name)
 
-                        # Loop through each base64 code and save it as a separate file
-                        saved_file_paths = []
-                        for index, base64_code in enumerate(base64_codes):
-                                  if base64_code is None:
-                                            continue  # Skip empty fields
+                try:
+                    # Write the base64 code to the file
+                    with open(save_path, 'wb') as image_file:
+                        image_file.write(base64.b64decode(base64_code))
+                except Exception as e:
+                    # Handle file writing errors
+                    error_message = f"Error saving image {index}: {str(e)}"
+                    return Response({"error": error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                except RequestDataTooBig:
+                          # Handle RequestDataTooBig error
+                          return Response({"error": "Request body exceeded maximum size."}, status=413)
 
-                                  image_name = f'image{index}.png'  # Change the extension based on your requirements
-                                  save_path = os.path.join(folder_path, image_name)
+                saved_file_paths.append(save_path)
 
-                                  try:
-                                            # Write the base64 code to the file
-                                            with open(save_path, 'wb') as image_file:
-                                                      image_file.write(base64.b64decode(base64_code))
-                                  except Exception as e:
-                                            # Handle file writing errors
-                                            error_message = f"Error saving image {index}: {str(e)}"
-                                            return Response({"error": error_message},
-                                                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            response_data = {
+                'status': 'success',
+                'code': status.HTTP_201_CREATED,
+                'message': 'Base64 codes converted to images successfully',
+                'saved_file_paths': saved_file_paths
+            }
+            return Response(response_data)
 
-                                  saved_file_paths.append(save_path)
+        return Response(serializer.errors)
 
-                        response_data = {
-                                  'status': 'success',
-                                  'code': status.HTTP_201_CREATED,
-                                  'message': 'Base64 codes converted to images successfully',
-                                  'saved_file_paths': saved_file_paths
-                        }
-                        return Response(response_data)
-
-              return Response(serializer.errors)
 
     def get(self, request, *args, **kwargs):
               # Specify the folder path where images are stored
@@ -382,4 +383,3 @@ class CarouselAPI(APIView):
                         'base64images': image_data,
               }
               return Response(response_data)
-
