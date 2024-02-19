@@ -395,7 +395,7 @@ class UtransactionAPI(ModelViewSet):
                               return Response(error_response)
 
 class SubscriptionforArtist(generics.ListAPIView):
-          serializer_class = Atransaction
+          serializer_class = AtSerializer
 
           def get(self, request, *args, **kwargs):
                     try:
@@ -458,7 +458,7 @@ class SubscriptionforArtist(generics.ListAPIView):
                                         'data': [{
                                                   'end_date': end_date.strftime("%Y-%m-%d"),
                                                   'remaining_days': remaining_days,
-                                                  'status': artist_status
+                                                  'status': artist_status,
                                         }]
                               }
                               return Response(response_data)
@@ -536,7 +536,7 @@ class SubscriptionforOrganizer(generics.ListAPIView):
                                         'data': [{
                                                   'end_date': end_date.strftime("%Y-%m-%d"),
                                                   'remaining_days': remaining_days,
-                                                  'status': organizer_status
+                                                  'status': organizer_status,
                                         }]
                               }
                               return Response(response_data)
@@ -614,7 +614,7 @@ class SubscriptionforUser(generics.ListAPIView):
                                         'data': [{
                                                   'end_date': end_date.strftime("%Y-%m-%d"),
                                                   'remaining_days': remaining_days,
-                                                  'status': user_status
+                                                  'status': user_status,
                                         }]
                               }
                               return Response(response_data)

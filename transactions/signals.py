@@ -6,16 +6,19 @@ from transactions.models import Atransaction, Otransaction, Utransaction
 def update_artistsubsdate(sender, instance, created, **kwargs):
           if created:
                     instance.uid.artistsubsdate = instance.atdate
+                    instance.uid.artiststatus = 'Active'
                     instance.uid.save()
 
 @receiver(post_save, sender=Otransaction)
 def update_organizersubsdate(sender, instance, created, **kwargs):
           if created:
                     instance.uid.organizersubsdate = instance.otdate
+                    instance.uid.organizerstatus = 'Active'
                     instance.uid.save()
 
 @receiver(post_save, sender=Utransaction)
 def update_usersubsdate(sender, instance, created, **kwargs):
           if created:
                             instance.uid.usersubsdate = instance.utdate
+                            instance.uid.userstatus = 'Active'
                             instance.uid.save()

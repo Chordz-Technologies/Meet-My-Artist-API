@@ -37,7 +37,7 @@ class User(models.Model):
     artistsubsdate = models.DateField(db_column='Artistsubsdate', blank=True, null=True, default=datetime.date(2024, 1, 1))  # Field name made lowercase.
     arequirements = models.CharField(db_column='Arequirements', max_length=50, blank=True, null=True, default=' ')  # Field name made lowercase.
     adescription = models.CharField(db_column='Adescription', max_length=500, blank=True, null=True, default=' ')  # Field name made lowercase.
-    artiststaus = models.CharField(db_column='Artiststaus', max_length=30, blank=True, null=True, default=' ')  # Field name made lowercase.
+    artiststatus = models.CharField(db_column='Artiststatus', max_length=30, blank=True, null=True, default=' ')  # Field name made lowercase.
     oprofilephoto = models.CharField(db_column='Oprofilephoto', max_length=200, blank=True, null=True, default=' ')  # Field name made lowercase.
     obusinessname = models.CharField(db_column='Obusinessname', max_length=50, blank=True, null=True, default=' ')  # Field name made lowercase.
     obusinesscategory = models.CharField(db_column='Obusinesscategory', max_length=50, blank=True, null=True, default=' ')  # Field name made lowercase.

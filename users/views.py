@@ -306,7 +306,7 @@ class CarouselAPI(APIView):
 
         if serializer.is_valid():
             # Retrieve image fields from serializer data
-            images = [serializer.validated_data.get(f'image{i}', None) for i in range(1, 6)]
+            images = [serializer.validated_data.get(f'image{i}') for i in range(1, 6)]
 
             # Specify the folder path for storing image files
             folder_name = 'carousel_images'
@@ -316,7 +316,7 @@ class CarouselAPI(APIView):
             saved_file_paths = []
             for index, base64_code in enumerate(images):
                 if base64_code is None:
-                    continue  # Skip empty fields
+                    continue # Skip empty fields
 
                 image_name = f'image{index + 1}.png'  # Change the extension based on your requirements
                 save_path = os.path.join(folder_path, image_name)
@@ -333,6 +333,7 @@ class CarouselAPI(APIView):
                           # Handle RequestDataTooBig error
                           return Response({"error": "Request body exceeded maximum size."}, status=413)
 
+                print("images saved")
                 saved_file_paths.append(save_path)
 
             response_data = {

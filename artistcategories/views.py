@@ -147,16 +147,6 @@ class ArtistcategoriesAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              existing_subcategories = instance.scname.split(',') if instance.scname else []
-
-                              # Assuming that the new subcategories are provided in the request data as a comma-separated string
-                              new_subcategories = request.data.get('scname', '').split(',')
-
-                              updated_subcategories = existing_subcategories + [subcategory.strip() for subcategory in
-                                                                                new_subcategories if
-                                                                                subcategory.strip()]
-                              request.data['scname'] = ','.join(updated_subcategories)
-
                               serializer = self.get_serializer(instance, data=request.data)
                               serializer.is_valid(raise_exception=True)
                               serializer.save()
@@ -181,16 +171,6 @@ class ArtistcategoriesAPI(ModelViewSet):
           def partial_update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              existing_subcategories = instance.scname.split(',') if instance.scname else []
-
-                              # Assuming that the new subcategories are provided in the request data as a comma-separated string
-                              new_subcategories = request.data.get('scname', '').split(',')
-
-                              updated_subcategories = existing_subcategories + [subcategory.strip() for subcategory in
-                                                                                new_subcategories if
-                                                                                subcategory.strip()]
-                              request.data['scname'] = ','.join(updated_subcategories)
-
                               serializer = self.get_serializer(instance, data=request.data, partial=True)
                               serializer.is_valid(raise_exception=True)
                               serializer.save()

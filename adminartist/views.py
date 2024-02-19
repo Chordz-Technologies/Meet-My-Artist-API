@@ -1,34 +1,35 @@
+from adminartist.models import Adminartist
+from adminartist.serializers import AdminSerializer, AdminLoginSerializer
+
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet
-
-from products.models import Products
-from products.serializers import ProductSerializer
-
 # Create your views here.
-class ProductsAPI(ModelViewSet):
-          queryset = Products.objects.all()
-          serializer_class = ProductSerializer
+
+class AdminAPI(ModelViewSet):
+          queryset = Adminartist.objects.all()
+          serializer_class = AdminSerializer
 
           def list(self, request, *args, **kwargs):
                     try:
-                              product = Products.objects.all()
-                              serializer = self.get_serializer(product, many=True)
+                              admin = Adminartist.objects.all()
+                              serializer = self.get_serializer(admin, many=True)
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'All Products',
-                                        'all_products': serializer.data,
+                                        'message': 'All admins',
+                                        'all_admins': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'An error occurred while fetching product: {}'.format(str(e))
-                    error_response = {
-                              'status': 'error',
-                              'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                              'message': error_message
-                    }
-                    return Response(error_response)
+                              error_msg = 'An error occurred while fetching records: {}'.format(str(e))
+                              error_response = {
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': error_msg,
+                              }
+                              return Response(error_response)
 
           def retrieve(self, request, *args, **kwargs):
                     try:
@@ -37,18 +38,17 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Products details fetched successfully',
-                                        'product_details': serializer.data,
+                                        'message': 'Admin details',
+                                        'admin_details': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'An error occurred while fetching product: {}'.format(str(e))
+                              error_msg = 'An error occurred: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        'message': error_message
+                                        'message': error_msg,
                               }
-                    return Response(error_response)
 
           def create(self, request, *args, **kwargs):
                     try:
@@ -58,18 +58,18 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
-                                        'message': 'Product details added successfully',
-                                        'new_product': serializer.data,
+                                        'message': 'Admin added successfully',
+                                        'new_admin': serializer.data,
                               }
-                              return Response(api_response, status=status.HTTP_201_CREATED)
+                              return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to add product details:{}'.format(str(e))
+                              error_msg = 'An error occurred: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_message
-                                        }
-                    return Response(error_response)
+                                        'message': error_msg
+                              }
+                              return Response(error_response)
 
           def update(self, request, *args, **kwargs):
                     try:
@@ -80,18 +80,17 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
+                                        'updated_admin': 'Admin updated successfully',
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to update product details:{}'.format(str(e))
+                              error_msg = 'An error occurred: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_message
-                                        }
-                    return Response(error_response)
+                                        'message': error_msg,
+                              }
+                              return Response(error_response)
 
           def partial_update(self, request, *args, **kwargs):
                     try:
@@ -102,35 +101,58 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
+                                        'updated_admin': 'Admin updated successfully',
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to partially update product details:{}'.format(str(e))
+                              error_msg = 'An error occurred: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_message
-                                        }
-                    return Response(error_response)
+                                        'message': error_msg,
+                              }
+                              return Response(error_response)
 
           def destroy(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
                               instance.delete()
-
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product deleted successfully',
+                                        'message': 'Admin deleted successfully',
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to delete product details:{}'.format(str(e))
+                              error_msg = 'An error occurred: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_message
-                                        }
-                    return Response(error_response)
+                                        'message': error_msg,
+                              }
+                              return Response(error_response)
+
+class AdminLoginAPI(APIView):
+          serializer_class = AdminLoginSerializer
+
+          def post(self, request, *args, **kwargs):
+                    serializer = self.serializer_class(data=request.data)
+
+                    if serializer.is_valid():
+                              aname = serializer.validated_data.get('aname')
+                              apassword = serializer.validated_data.get('apassword')
+
+                              try:
+                                        admin = Adminartist.objects.get(aname=aname)
+
+                                        if admin.apssword == apassword:
+                                                  return Response({'message': 'Valid User'}, status=status.HTTP_200_OK)
+                                        else:
+                                                  return Response({'message': 'Invalid Password'}, status=status.HTTP_401_UNAUTHORIZED)
+                              except Adminartist.DoesNotExist:
+                                        return Response({'message': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+

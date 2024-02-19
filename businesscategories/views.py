@@ -2,27 +2,27 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
-from products.models import Products
-from products.serializers import ProductSerializer
+from businesscategories.models import Businesscategories
+from businesscategories.serializers import BusinessSerializer
 
 # Create your views here.
-class ProductsAPI(ModelViewSet):
-          queryset = Products.objects.all()
-          serializer_class = ProductSerializer
+class BcategoryAPI(ModelViewSet):
+          queryset = Businesscategories.objects.all()
+          serializer_class = BusinessSerializer
 
           def list(self, request, *args, **kwargs):
                     try:
-                              product = Products.objects.all()
+                              product = Businesscategories.objects.all()
                               serializer = self.get_serializer(product, many=True)
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'All Products',
-                                        'all_products': serializer.data,
+                                        'message': 'All bcategories',
+                                        'all_bcategories': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'An error occurred while fetching product: {}'.format(str(e))
+                              error_message = 'An error occurred while fetching bcategory: {}'.format(str(e))
                     error_response = {
                               'status': 'error',
                               'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -37,12 +37,12 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Products details fetched successfully',
-                                        'product_details': serializer.data,
+                                        'message': 'Bcategory details fetched successfully',
+                                        'bcategory_details': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'An error occurred while fetching product: {}'.format(str(e))
+                              error_message = 'An error occurred while fetching bcategory: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -58,12 +58,12 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
-                                        'message': 'Product details added successfully',
-                                        'new_product': serializer.data,
+                                        'message': 'Bcategory added successfully',
+                                        'new_bcategory': serializer.data,
                               }
-                              return Response(api_response, status=status.HTTP_201_CREATED)
+                              return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to add product details:{}'.format(str(e))
+                              error_message = 'Failed to add bcategory:{}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
@@ -80,12 +80,12 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
+                                        'message': 'Bcategory updated successfully',
+                                        'updated_bcategory': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to update product details:{}'.format(str(e))
+                              error_message = 'Failed to update bcategory:{}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
@@ -102,12 +102,12 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
+                                        'message': 'Bcategory updated successfully',
+                                        'updated_bcategory': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to partially update product details:{}'.format(str(e))
+                              error_message = 'Failed to partially update bcategory:{}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
@@ -123,14 +123,15 @@ class ProductsAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'message': 'Product deleted successfully',
+                                        'message': 'Bcategory deleted successfully',
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to delete product details:{}'.format(str(e))
+                              error_message = 'Failed to delete bcategory:{}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                                         }
                     return Response(error_response)
+
