@@ -8,11 +8,13 @@ from rest_framework import generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import User
 from artistcategories.models import Artistcategories
 from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer
 from artistcategories.serializers import ArtistcategoriesSerializer
+from businesscategories.models import Businesscategories
+from django.db.models import Q
 
 # API for Users
 class UserAPI(ModelViewSet):
@@ -38,6 +40,58 @@ class UserAPI(ModelViewSet):
                                         'message': error_msg,
                               }
                               return Response(error_response)
+
+          def search(self, request, *args, **kwargs):
+              try:
+                  search_term = request.query_params.get('search_term')
+                  if not search_term:
+                      return Response({"message": "Please provide a search term"}, status=status.HTTP_400_BAD_REQUEST)
+
+                  # Perform case-insensitive search by name or mobile number
+                  search_results = User.objects.filter(Q(uname=search_term))
+
+                  # Extract start index and limit from the request query parameters
+                  start_index = int(request.query_params.get('start_index', 0))
+                  limit = 50  # Default limit is 50
+
+                  # Ensure ordering by primary key for consistent pagination
+                  search_results = search_results.order_by('pk')
+
+                  # Use Django Paginator to get the subset of records
+                  paginator = Paginator(search_results, limit)
+                  page_number = (start_index // limit) + 1  # Calculate page number based on starting index
+
+                  try:
+                      paginated_search_results = paginator.page(page_number)
+                  except PageNotAnInteger:
+                      paginated_search_results = paginator.page(1)
+                  except EmptyPage:
+                      return Response({"message": "No more records available"}, status=status.HTTP_200_OK)
+
+                  serializer = self.get_serializer(paginated_search_results, many=True)
+
+                  api_response = {
+                      "status": "success",
+                      "code": status.HTTP_200_OK,
+                      "message": f"Search results for '{search_term}'",
+                      "start_index": start_index,
+                      "limit": limit,
+                      "total_records": paginator.count,
+                      "data": serializer.data,
+                  }
+                  return Response(api_response, status=status.HTTP_200_OK)
+              except Exception as e:
+                  error_message = (
+                      "An error occurred while searching user: {}".format(str(e))
+                  )
+                  error_response = {
+                      "status": "error",
+                      "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                      "message": error_message,
+                  }
+                  return Response(
+                      error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                  )
 
           def retrieve(self, request, *args, **kwargs):
                     try:
@@ -265,10 +319,108 @@ class ArtistByCategoryAPI(generics.ListAPIView):
                     response_data = {
                               'status': 'error',
                               'code': status.HTTP_400_BAD_REQUEST,
-                              'message': 'Invalid category or subcategory provided.',
+                              'message': 'Invalid category or subcategory provided for artist.',
                               'data': []
                     }
                     return Response(response_data)
+
+class OrganiserByCategoryAPI(generics.ListAPIView):
+    serializer_class = UserSerializer
+
+    def list(self, request, *args, **kwargs):
+        bcategory = self.kwargs.get('businesscategory')
+        category_obj = Businesscategories.objects.filter(businesscategory=bcategory).first()
+
+        if category_obj:
+            organisers = User.objects.filter(utypeorganizer=1, obusinesscategory=bcategory)
+            serializer = self.get_serializer(organisers, many=True)
+            data = serializer.data
+            response_data = {
+                'status': 'success',
+                'code': status.HTTP_200_OK,
+                'message': 'Organisers fetched successfully',
+                'organiserbycategory': data
+            }
+            return Response(response_data)
+
+        response_data = {
+            'status': 'error',
+            'code': status.HTTP_400_BAD_REQUEST,
+            'message': 'Invalid category provided for organiser.',
+            'data': []
+        }
+        return Response(response_data)
+
+class getWishlistAPI(APIView):
+    def get(self, request, uid):
+        try:
+            user = User.objects.get(uid=uid)
+        except User.DoesNotExist:
+            return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.utypeartist == 1:
+            wishlist = user.awishlist.split(',')
+        elif user.utypeorganizer == 1:
+            wishlist = user.owishlist.split(',')
+        else:
+            wishlist = user.uwishlist.split(',')
+
+        return Response({"wishlist": wishlist}, status=status.HTTP_200_OK)
+
+class addToWishlist(APIView):
+    def post(self, request, uid, wished_user_id):
+        try:
+            user = User.objects.get(uid=uid)
+        except User.DoesNotExist:
+            return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.utypeartist == 1:
+            user.awishlist += f",{wished_user_id}"
+        elif user.utypeorganizer == 1:
+            user.owishlist += f",{wished_user_id}"
+        else:
+            user.uwishlist += f",{wished_user_id}"
+        user.save()
+
+        return Response({"message": "User added to wishlist successfully"}, status=status.HTTP_201_CREATED)
+
+class deleteFromWishlist(APIView):
+    def delete(self, request, uid, wished_user_id):
+        try:
+            user = User.objects.get(uid=uid)
+        except User.DoesNotExist:
+            return Response({"message": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Split the wishlist string into a list of IDs
+        if user.utypeartist == 1:
+            wishlist = user.awishlist.split(',')
+        elif user.utypeorganizer == 1:
+            wishlist = user.owishlist.split(',')
+        else:
+            wishlist = user.uwishlist.split(',')
+
+        # Convert wished_user_id to the same type as the IDs in the wishlist
+        wished_user_id_str = str(wished_user_id)
+
+        # Remove the wished user ID from the wishlist
+        if wished_user_id_str in wishlist:
+            wishlist.remove(wished_user_id_str)
+
+        # Join the updated wishlist back into a string
+        updated_wishlist = ','.join(wishlist)
+
+        # Update the corresponding wishlist field in the user object
+        if user.utypeartist == 1:
+            user.awishlist = updated_wishlist
+        elif user.utypeorganizer == 1:
+            user.owishlist = updated_wishlist
+        else:
+            user.uwishlist = updated_wishlist
+
+        # Save the user object
+        user.save()
+
+        return Response({"message": "User removed from wishlist successfully"}, status=status.HTTP_200_OK)
 
 class UserCountAPI(generics.ListAPIView):
           serializer_class = UserSerializer

@@ -96,7 +96,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'findmyartist',
         'USER': 'root',
-        'PASSWORD': '1234',
+        'PASSWORD': 'Roshni',
         'HOST': 'localhost',
         'PORT': '3306',
     }
