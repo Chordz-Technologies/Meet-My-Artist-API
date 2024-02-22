@@ -1,5 +1,5 @@
 from django.urls import path
-from event.views import EventAPI
+from event.views import EventAPI, NotificationforEvents
 
 # router = routers.DefaultRouter()
 # router.register('', eventAPI)
@@ -12,4 +12,7 @@ urlpatterns = [
           path('updateEvent/<int:pk>', EventAPI.as_view({'put': 'update'})),
           path('partialupdateEvent/<int:pk>/', EventAPI.as_view({'patch': 'partial_update'})),
           path('deleteEvent/<int:pk>/', EventAPI.as_view({'delete': 'destroy'})),
+
+          path('eventNotifications/', NotificationforEvents.as_view()),
+
 ]

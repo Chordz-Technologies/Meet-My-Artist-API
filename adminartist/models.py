@@ -4,7 +4,7 @@ from django.db import models
 class Adminartist(models.Model):
     aid = models.AutoField(primary_key=True)
     aname = models.CharField(max_length=50, blank=True, null=True)
-    apssword = models.CharField(max_length=50, blank=True, null=True)
+    apassword = models.CharField(max_length=50, blank=True, null=True)
     aconfirmpassword = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:

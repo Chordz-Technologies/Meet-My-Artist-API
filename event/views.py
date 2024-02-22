@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from event.models import Events
 from event.serializers import EventSerializer
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -67,7 +69,7 @@ class EventAPI(ModelViewSet):
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
-                                        }
+                              }
                     return Response(error_response)
 
           def update(self, request, *args, **kwargs):
@@ -89,7 +91,7 @@ class EventAPI(ModelViewSet):
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
-                                        }
+                              }
                     return Response(error_response)
 
           def partial_update(self, request, *args, **kwargs):
@@ -111,7 +113,7 @@ class EventAPI(ModelViewSet):
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
-                                        }
+                              }
                     return Response(error_response)
 
           def destroy(self, request, *args, **kwargs):
@@ -131,5 +133,59 @@ class EventAPI(ModelViewSet):
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
-                                        }
+                              }
                     return Response(error_response)
+
+class NotificationforEvents(APIView):
+          def get(self, request):
+                    try:
+                              # Get current date
+                              current_date = datetime.now().date()
+
+                              # Calculate the date 3 days from now
+                              three_days_later = current_date + timedelta(days=3)
+
+                              # Query events happening within the next 3 days
+                              upcoming_events = Events.objects.filter(edate__lte=three_days_later)
+
+                              if upcoming_events.exists():
+                                        # Serialize the data if needed
+                                        serialized_data = []  # Assuming you have a serializer for the Events model
+                                        for event in upcoming_events:
+                                                  # Convert etime to a more user-friendly format
+                                                  etime_formatted = event.etime.strftime(
+                                                            "%I:%M%p") if event.etime else None
+                                                  serialized_data.append({
+                                                            'eid': event.eid,
+                                                            'ename': event.ename,
+                                                            'elocation': event.elocation,
+                                                            'edate': event.edate,
+                                                            'etime': etime_formatted,
+                                                            'eposter': event.eposter,
+                                                            'obuisnessname': event.obusinessname
+                                                            # Add other fields as needed
+                                                  })
+
+                                        # Return success response
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'Upcoming events found',
+                                                  'data': serialized_data
+                                        }, status=status.HTTP_200_OK)
+                              else:
+                                        # Return response for no events found
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'No upcoming events found',
+                                                  'data': []
+                                        }, status=status.HTTP_200_OK)
+                    except Exception as e:
+                              # Return failure response
+                              return Response({
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': 'Internal Server Error',
+                                        'data': str(e)
+                              }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

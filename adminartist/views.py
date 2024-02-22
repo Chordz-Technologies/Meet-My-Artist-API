@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
+
 # Create your views here.
 
 class AdminAPI(ModelViewSet):
@@ -67,7 +68,7 @@ class AdminAPI(ModelViewSet):
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_msg
+                                        'message': error_msg,
                               }
                               return Response(error_response)
 
@@ -80,7 +81,8 @@ class AdminAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'updated_admin': 'Admin updated successfully',
+                                        'message': 'Admin updated successfully',
+                                        'updated_admin': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
@@ -101,7 +103,8 @@ class AdminAPI(ModelViewSet):
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,
-                                        'updated_admin': 'Admin updated successfully',
+                                        'message': 'Admin updated successfully',
+                                        'updated_admin': serializer.data,
                               }
                               return Response(api_response)
                     except Exception as e:
@@ -145,14 +148,13 @@ class AdminLoginAPI(APIView):
                               try:
                                         admin = Adminartist.objects.get(aname=aname)
 
-                                        if admin.apssword == apassword:
+                                        if admin.apassword == apassword:
                                                   return Response({'message': 'Valid User'}, status=status.HTTP_200_OK)
                                         else:
-                                                  return Response({'message': 'Invalid Password'}, status=status.HTTP_401_UNAUTHORIZED)
+                                                  return Response({'message': 'Invalid Password'},
+                                                                  status=status.HTTP_401_UNAUTHORIZED)
                               except Adminartist.DoesNotExist:
-                                        return Response({'message': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+                                        return Response({'message': 'Invalid Credentials'},
+                                                        status=status.HTTP_401_UNAUTHORIZED)
 
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-

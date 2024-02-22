@@ -23,17 +23,20 @@ class UserSerializer(serializers.ModelSerializer):
                     ]
 
                     for field in array_fields:
-                              if field in representation and representation[field] is not None and representation[field].strip() != '':
-                                        representation[field] = representation[field].split(',')
+                              if field in representation and representation[field] is not None:
+                                        if representation[field].strip() == '':
+                                                  representation[field] = []
+                                        else:
+                                                  representation[field] = representation[field].split(',')
 
                     return representation
 
 class UserLoginSerializer(serializers.Serializer):
-    uname = serializers.CharField(required=True)
-    upassword = serializers.CharField(required=True)
-    utypeartist = serializers.IntegerField(required=True)
-    utypeorganizer = serializers.IntegerField(required=True)
-    utypeuser = serializers.IntegerField(required=True)
+          uname = serializers.CharField(required=True)
+          upassword = serializers.CharField(required=True)
+          utypeartist = serializers.IntegerField(required=True)
+          utypeorganizer = serializers.IntegerField(required=True)
+          utypeuser = serializers.IntegerField(required=True)
 
 class CarouselSerializer(serializers.Serializer):
           image1 = serializers.CharField(required=False)
@@ -41,6 +44,7 @@ class CarouselSerializer(serializers.Serializer):
           image3 = serializers.CharField(required=False)
           image4 = serializers.CharField(required=False)
           image5 = serializers.CharField(required=False)
+
           def validate(self, attrs):
                     # Remove empty fields from the validated data
                     validated_data = {key: value for key, value in attrs.items() if value.strip()}
