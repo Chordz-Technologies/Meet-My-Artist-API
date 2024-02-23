@@ -7,6 +7,7 @@ from rest_framework.viewsets import ModelViewSet
 from transactions.models import Atransaction, Otransaction, Utransaction
 from transactions.serializers import AtSerializer, OtSerializer, UtSerializer
 from users.models import User
+from subscription.models import Subscription
 
 # Create your views here.
 
@@ -591,7 +592,7 @@ class SubscriptionforUser(generics.ListAPIView):
                               subscription_duration = subscription.sduration
 
                               # Calculate end date for the subscription
-                              end_date = latest_transaction.otdate + timedelta(days=subscription_duration)
+                              end_date = latest_transaction.utdate + timedelta(days=subscription_duration)
 
                               # Calculate remaining days for the subscription
                               remaining_days = max((end_date - current_date).days, 0)
@@ -624,6 +625,204 @@ class SubscriptionforUser(generics.ListAPIView):
                               return Response({
                                         'status': 'error',
                                         'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })
+
+class ASubscriptionEndingSoon(generics.ListAPIView):
+          serializer_class = AtSerializer
+
+          def get(self, request):
+                    try:
+                              # Get current date
+                              current_date = datetime.now().date()
+
+                              # Retrieve transactions
+                              transactions = Atransaction.objects.all()
+
+                              # Collect subscriptions ending soon
+                              ending_soon = []
+                              for transaction in transactions:
+                                        # Access the related Subscription object via the ForeignKey relationship
+                                        subscription = transaction.sid
+
+                                        if subscription is not None:
+                                                  # Get the duration from the subscription object
+                                                  duration = subscription.sduration
+
+                                                  # Calculate the end date based on subscription start date and duration
+                                                  end_date = transaction.atdate + timedelta(days=duration)
+
+                                                  # Calculate remaining days until the subscription ends
+                                                  remaining_days = (end_date - current_date).days
+
+                                                  # Check if remaining days are within the range of 1 to 7
+                                                  if 1 <= remaining_days <= 7:
+                                                            # Access the related User object via the ForeignKey relationship
+                                                            user = transaction.uid
+
+                                                            ending_soon.append({
+                                                                      'user_id': user.uid,
+                                                                      'user_name': user.uname,
+                                                                      'contact_no': user.uwhatsappno,
+                                                                      'user_email': user.uemail,
+                                                                      'subscription_date': transaction.atdate,
+                                                                      'remaining_days': remaining_days,
+                                                                      # Add more fields as required
+                                                            })
+
+                              if ending_soon:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': 200,
+                                                  'message': 'Artist subscriptions ending soon',
+                                                  'data': ending_soon
+                                        })
+                              else:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': 404,
+                                                  'message': 'No artist subscriptions expiring soon',
+                                                  'data': []
+                                        })
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': 500,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })
+
+class OSubscriptionEndingSoon(generics.ListAPIView):
+          serializer_class = OtSerializer
+
+          def get(self, request):
+                    try:
+                              # Get current date
+                              current_date = datetime.now().date()
+
+                              # Retrieve transactions
+                              transactions = Otransaction.objects.all()
+
+                              # Collect subscriptions ending soon
+                              ending_soon = []
+                              for transaction in transactions:
+                                        # Access the related Subscription object via the ForeignKey relationship
+                                        subscription = transaction.sid
+
+                                        if subscription is not None:
+                                                  # Get the duration from the subscription object
+                                                  duration = subscription.sduration
+
+                                                  # Calculate the end date based on subscription start date and duration
+                                                  end_date = transaction.otdate + timedelta(days=duration)
+
+                                                  # Calculate remaining days until the subscription ends
+                                                  remaining_days = (end_date - current_date).days
+
+                                                  # Check if remaining days are within the range of 1 to 7
+                                                  if 1 <= remaining_days <= 7:
+                                                            # Access the related User object via the ForeignKey relationship
+                                                            user = transaction.uid
+
+                                                            ending_soon.append({
+                                                                      'user_id': user.uid,
+                                                                      'user_name': user.uname,
+                                                                      'contact_no': user.uwhatsappno,
+                                                                      'user_email': user.uemail,
+                                                                      'subscription_date': transaction.otdate,
+                                                                      'remaining_days': remaining_days,
+                                                                      # Add more fields as required
+                                                            })
+
+                              if ending_soon:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': 200,
+                                                  'message': 'Organizer subscriptions ending soon',
+                                                  'data': ending_soon
+                                        })
+                              else:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': 404,
+                                                  'message': 'No organizer subscriptions expiring soon',
+                                                  'data': []
+                                        })
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': 500,
+                                        'message': 'An error occurred',
+                                        'data': str(e)
+                              })
+
+class USubscriptionEndingSoon(generics.ListAPIView):
+          serializer_class = UtSerializer
+
+          def get(self, request):
+                    try:
+                              # Get current date
+                              current_date = datetime.now().date()
+
+                              # Retrieve transactions
+                              transactions = Utransaction.objects.all()
+
+                              # Collect subscriptions ending soon
+                              ending_soon = []
+                              for transaction in transactions:
+                                        # Access the related Subscription object via the ForeignKey relationship
+                                        subscription = transaction.sid
+
+                                        if subscription is not None:
+                                                  # Get the duration from the subscription object
+                                                  duration = subscription.sduration
+
+                                                  # Calculate the end date based on subscription start date and duration
+                                                  end_date = transaction.utdate + timedelta(days=duration)
+
+                                                  # Calculate remaining days until the subscription ends
+                                                  remaining_days = (end_date - current_date).days
+
+                                                  # Check if remaining days are within the range of 1 to 7
+                                                  if 1 <= remaining_days <= 7:
+                                                            # Access the related User object via the ForeignKey relationship
+                                                            user = transaction.uid
+
+                                                            ending_soon.append({
+                                                                      'user_id': user.uid,
+                                                                      'user_name': user.uname,
+                                                                      'contact_no': user.uwhatsappno,
+                                                                      'user_email': user.uemail,
+                                                                      'subscription_date': transaction.utdate,
+                                                                      'remaining_days': remaining_days,
+                                                                      # Add more fields as required
+                                                            })
+
+                              if ending_soon:
+                                        return Response({
+                                                  'status': 'success',
+                                                  'code': 200,
+                                                  'message': 'User subscriptions ending soon',
+                                                  'data': ending_soon
+                                        })
+                              else:
+                                        return Response({
+                                                  'status': 'fail',
+                                                  'code': 404,
+                                                  'message': 'No user subscriptions expiring soon',
+                                                  'data': []
+                                        })
+
+                    except Exception as e:
+                              # Handle other potential exceptions
+                              return Response({
+                                        'status': 'error',
+                                        'code': 500,
                                         'message': 'An error occurred',
                                         'data': str(e)
                               })

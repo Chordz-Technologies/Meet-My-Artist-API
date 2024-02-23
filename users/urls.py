@@ -19,7 +19,7 @@ urlpatterns = [
           path('artistsList/', UserAPI.as_view({'get': 'artistsList'})),
           path('organizersList/', UserAPI.as_view({'get': 'organizersList'})),
           path('usersList/', UserAPI.as_view({'get': 'usersList'})),
-          path('userSearch/search/', UserAPI.as_view({'get': 'search'})),
+          path('userSearch/', UserAPI.as_view({'get': 'search'})),
           path('userLogin/', UserLoginAPI.as_view()),
 
           path('artistbyCategory/<str:cname>/<str:scname>/', ArtistByCategoryAPI.as_view()),

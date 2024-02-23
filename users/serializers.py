@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
                     return representation
 
 class UserLoginSerializer(serializers.Serializer):
-          uname = serializers.CharField(required=True)
+          uemail = serializers.CharField(required=True)
           upassword = serializers.CharField(required=True)
           utypeartist = serializers.IntegerField(required=True)
           utypeorganizer = serializers.IntegerField(required=True)

@@ -1,9 +1,11 @@
 import ast
 import os
 import base64
+import operator
+from functools import reduce
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
-from django.db.models import Max, Count
+from django.db.models import Max, Count, CharField, TextField
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
@@ -11,8 +13,12 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import User
+from event.models import Events
+from products.models import Products
 from artistcategories.models import Artistcategories
 from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer
+from event.serializers import EventSerializer
+from products.serializers import ProductSerializer
 from artistcategories.serializers import ArtistcategoriesSerializer
 from businesscategories.models import Businesscategories
 from django.db.models import Q
@@ -46,55 +52,79 @@ class UserAPI(ModelViewSet):
                     try:
                               search_term = request.query_params.get('search_term')
                               if not search_term:
-                                        return Response({'message': 'Please provide a search term'},
+                                        return Response({"message": "Please provide a search term"},
                                                         status=status.HTTP_400_BAD_REQUEST)
 
-                              # Perform case-insensitive search by name or mobile number
-                              search_results = User.objects.filter(Q(uname=search_term))
+                              # List of models you want to search
+                              models_to_search = [Events, Products, User]
 
-                              # Extract start index and limit from the request query parameters
-                              start_index = int(request.query_params.get('start_index', 0))
-                              limit = 50  # Default limit is 50
+                              # Initialize dictionary to store search results for each model
+                              search_results = {}
 
-                              # Ensure ordering by primary key for consistent pagination
-                              search_results = search_results.order_by('pk')
+                              # Iterate through each model and perform the search
+                              for model in models_to_search:
+                                        queryset = self.filter_model_by_search_term(model, search_term)
+                                        search_results[model.__name__] = queryset
 
-                              # Use Django Paginator to get the subset of records
-                              paginator = Paginator(search_results, limit)
-                              page_number = (start_index // limit) + 1  # Calculate page number based on starting index
+                              # Check if any results are found
+                              total_records = {model_name: queryset.count() for model_name, queryset in
+                                               search_results.items()}
+                              if any(total_records.values()):
+                                        # Process and serialize the search results for each model
+                                        serialized_results = {}
+                                        for model_name, queryset in search_results.items():
+                                                  serializer_class = self.get_serializer_class_for_model(model)
+                                                  serializer = serializer_class(queryset, many=True)
+                                                  serialized_results[model_name] = serializer.data
 
-                              try:
-                                        paginated_search_results = paginator.page(page_number)
-                              except PageNotAnInteger:
-                                        paginated_search_results = paginator.page(1)
-                              except EmptyPage:
-                                        return Response({'message': 'No more records available'},
-                                                        status=status.HTTP_200_OK)
+                                        # Construct the API response with search results
+                                        api_response = {
+                                                  "status": "success",
+                                                  "code": status.HTTP_200_OK,
+                                                  "message": f"Search results for '{search_term}'",
+                                                  "total_records": total_records,
+                                                  "data": serialized_results,
+                                        }
+                              else:
+                                        # No records found for the search term
+                                        api_response = {
+                                                  "status": "success",
+                                                  "code": status.HTTP_200_OK,
+                                                  "message": f"No records found for '{search_term}'",
+                                                  "total_records": total_records,
+                                                  "data": {},
+                                        }
 
-                              serializer = self.get_serializer(paginated_search_results, many=True)
-
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': f'Search results for {search_term}',
-                                        'start_index': start_index,
-                                        'limit': limit,
-                                        'total_records': paginator.count,
-                                        'data': serializer.data,
-                              }
                               return Response(api_response, status=status.HTTP_200_OK)
+
                     except Exception as e:
-                              error_message = (
-                                        'An error occurred while searching user: {}'.format(str(e))
-                              )
+                              error_message = f"An error occurred while searching: {str(e)}"
                               error_response = {
-                                        'status': 'error',
-                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        'message': error_message,
+                                        "status": "error",
+                                        "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        "message": error_message,
                               }
-                              return Response(
-                                        error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                              )
+                              return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+          def filter_model_by_search_term(self, model, search_term):
+                    # Construct a filter condition dynamically for each model
+                    filter_conditions = reduce(operator.or_,
+                                               [Q(**{f"{field.name}__icontains": search_term}) for field in
+                                                model._meta.fields if
+                                                isinstance(field, (CharField, TextField))])
+
+                    # Apply the filter condition to the model queryset
+                    return model.objects.filter(filter_conditions)
+
+          def get_serializer_class_for_model(self, model):
+                    # Define mapping between models and serializer classes
+                    serializer_mapping = {
+                              'Events': EventSerializer,
+                              'Products': ProductSerializer,
+                              'User': UserSerializer,
+                              # Add mappings for other models as needed
+                    }
+                    return serializer_mapping.get(model, UserSerializer)
 
           def retrieve(self, request, *args, **kwargs):
                     try:
@@ -272,11 +302,11 @@ class UserLoginAPI(APIView):
                     serializer = self.serializer_class(data=request.data)
 
                     if serializer.is_valid():
-                              uname = serializer.validated_data.get('uname')
+                              uemail = serializer.validated_data.get('uemail')
                               upassword = serializer.validated_data.get('upassword')
 
                               try:
-                                        user = User.objects.get(uname=uname)
+                                        user = User.objects.get(uemail=uemail)
 
                                         if user.upassword == upassword:
                                                   user_type = None
@@ -296,7 +326,8 @@ class UserLoginAPI(APIView):
 
                                                                                 return Response(
                                                                                           {'message': 'Valid User',
-                                                                                           'user_type': user_type},
+                                                                                           'user_type': user_type,
+                                                                                           'user_id': user.uid},
                                                                                           status=status.HTTP_200_OK)
                                                                       else:
                                                                                 return Response({
