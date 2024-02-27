@@ -1,7 +1,8 @@
 from django.urls import path
 
-from users.views import UserAPI, UserLoginAPI, ArtistByCategoryAPI, CarouselAPI, UserCountAPI, OrganizerByCategoryAPI, \
-          getWishlistAPI, addToWishlist, deleteFromWishlist, getLikesAPI, addToLikes, deleteFromLikes
+from users.views import UserAPI, UserLoginAPI, ArtistByCategoryAPI, UserCountAPI, OrganizerByCategoryAPI, \
+          getWishlistAPI, addToWishlist, deleteFromWishlist, getLikesAPI, addToLikes, deleteFromLikes, AddProfilePhoto, \
+          GetProfilePhoto, AddMultiplePhotos, GetMultiplePhotos, GetCarouselImages, AddCarouselImages
 
 # router = routers.DefaultRouter()
 # router.register(r'Users', UserAPI)
@@ -19,13 +20,21 @@ urlpatterns = [
           path('artistsList/', UserAPI.as_view({'get': 'artistsList'})),
           path('organizersList/', UserAPI.as_view({'get': 'organizersList'})),
           path('usersList/', UserAPI.as_view({'get': 'usersList'})),
-          path('userSearch/search/', UserAPI.as_view({'get': 'search'})),
+          path('userSearch/', UserAPI.as_view({'get': 'search'})),
           path('userLogin/', UserLoginAPI.as_view()),
+          path('userCount/', UserCountAPI.as_view()),
 
           path('artistbyCategory/<str:cname>/<str:scname>/', ArtistByCategoryAPI.as_view()),
           path('organizerbyCategory/<str:businesscategory>/', OrganizerByCategoryAPI.as_view()),
-          path('imagesCarousel/', CarouselAPI.as_view()),
-          path('userCount/', UserCountAPI.as_view()),
+
+          path('getCarouselImages/', GetCarouselImages.as_view()),
+          path('addCarouselImages/', AddCarouselImages.as_view()),
+
+          path('getProfilePhoto/<int:userid>/', GetProfilePhoto.as_view()),
+          path('addProfilePhoto/', AddProfilePhoto.as_view()),
+
+          path('getMultiplePhotos/<int:userid>/', GetMultiplePhotos.as_view()),
+          path('addMultiplePhotos/', AddMultiplePhotos.as_view()),
 
           path('getWishlist/<int:uid>/', getWishlistAPI.as_view()),
           path('addtoWishlist/<int:uid>/<int:wished_user_id>/', addToWishlist.as_view()),

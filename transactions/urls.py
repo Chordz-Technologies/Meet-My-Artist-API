@@ -1,5 +1,7 @@
 from django.urls import path
-from transactions.views import AtransactionAPI, OtransactionAPI, UtransactionAPI, SubscriptionforArtist, SubscriptionforOrganizer, SubscriptionforUser
+from transactions.views import AtransactionAPI, OtransactionAPI, UtransactionAPI, SubscriptionforArtist, \
+          SubscriptionforOrganizer, SubscriptionforUser, ASubscriptionEndingSoon, OSubscriptionEndingSoon, \
+          USubscriptionEndingSoon
 
 urlpatterns = [
           path('allAtransactions/', AtransactionAPI.as_view({'get': 'list'})),
@@ -26,5 +28,9 @@ urlpatterns = [
           path('subscriptionforArtist/<int:uid>/', SubscriptionforArtist.as_view()),
           path('subscriptionforOrganizer/<int:uid>/', SubscriptionforOrganizer.as_view()),
           path('subscriptionforUser/<int:uid>/', SubscriptionforUser.as_view()),
+
+          path('aSubsEndingSoon/', ASubscriptionEndingSoon.as_view()),
+          path('oSubsEndingSoon/', OSubscriptionEndingSoon.as_view()),
+          path('uSubsEndingSoon/', USubscriptionEndingSoon.as_view()),
 
 ]

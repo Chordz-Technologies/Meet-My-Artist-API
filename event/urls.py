@@ -1,5 +1,5 @@
 from django.urls import path
-from event.views import EventAPI, NotificationforEvents
+from event.views import EventAPI, NotificationforEvents, GetEventbyUid
 
 # router = routers.DefaultRouter()
 # router.register('', eventAPI)
@@ -14,5 +14,7 @@ urlpatterns = [
           path('deleteEvent/<int:pk>/', EventAPI.as_view({'delete': 'destroy'})),
 
           path('eventNotifications/', NotificationforEvents.as_view()),
+
+          path('getEventsbyUid/<int:uid>/', GetEventbyUid.as_view()),
 
 ]

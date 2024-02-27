@@ -1,9 +1,11 @@
 import ast
 import os
 import base64
+import operator
+from functools import reduce
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
-from django.db.models import Max, Count
+from django.db.models import Max, Count, CharField, TextField
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
@@ -11,8 +13,13 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from users.models import User
+from event.models import Events
+from products.models import Products
 from artistcategories.models import Artistcategories
-from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer
+from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer, ProfilePhotoSerializer, \
+          MultiplePhotosSerializer
+from event.serializers import EventSerializer
+from products.serializers import ProductSerializer
 from artistcategories.serializers import ArtistcategoriesSerializer
 from businesscategories.models import Businesscategories
 from django.db.models import Q
@@ -46,55 +53,79 @@ class UserAPI(ModelViewSet):
                     try:
                               search_term = request.query_params.get('search_term')
                               if not search_term:
-                                        return Response({'message': 'Please provide a search term'},
+                                        return Response({"message": "Please provide a search term"},
                                                         status=status.HTTP_400_BAD_REQUEST)
 
-                              # Perform case-insensitive search by name or mobile number
-                              search_results = User.objects.filter(Q(uname=search_term))
+                              # List of models you want to search
+                              models_to_search = [Events, Products, User]
 
-                              # Extract start index and limit from the request query parameters
-                              start_index = int(request.query_params.get('start_index', 0))
-                              limit = 50  # Default limit is 50
+                              # Initialize dictionary to store search results for each model
+                              search_results = {}
 
-                              # Ensure ordering by primary key for consistent pagination
-                              search_results = search_results.order_by('pk')
+                              # Iterate through each model and perform the search
+                              for model in models_to_search:
+                                        queryset = self.filter_model_by_search_term(model, search_term)
+                                        search_results[model.__name__] = queryset
 
-                              # Use Django Paginator to get the subset of records
-                              paginator = Paginator(search_results, limit)
-                              page_number = (start_index // limit) + 1  # Calculate page number based on starting index
+                              # Check if any results are found
+                              total_records = {model_name: queryset.count() for model_name, queryset in
+                                               search_results.items()}
+                              if any(total_records.values()):
+                                        # Process and serialize the search results for each model
+                                        serialized_results = {}
+                                        for model_name, queryset in search_results.items():
+                                                  serializer_class = self.get_serializer_class_for_model(model)
+                                                  serializer = serializer_class(queryset, many=True)
+                                                  serialized_results[model_name] = serializer.data
 
-                              try:
-                                        paginated_search_results = paginator.page(page_number)
-                              except PageNotAnInteger:
-                                        paginated_search_results = paginator.page(1)
-                              except EmptyPage:
-                                        return Response({'message': 'No more records available'},
-                                                        status=status.HTTP_200_OK)
+                                        # Construct the API response with search results
+                                        api_response = {
+                                                  "status": "success",
+                                                  "code": status.HTTP_200_OK,
+                                                  "message": f"Search results for '{search_term}'",
+                                                  "total_records": total_records,
+                                                  "data": serialized_results,
+                                        }
+                              else:
+                                        # No records found for the search term
+                                        api_response = {
+                                                  "status": "success",
+                                                  "code": status.HTTP_200_OK,
+                                                  "message": f"No records found for '{search_term}'",
+                                                  "total_records": total_records,
+                                                  "data": {},
+                                        }
 
-                              serializer = self.get_serializer(paginated_search_results, many=True)
-
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': f'Search results for {search_term}',
-                                        'start_index': start_index,
-                                        'limit': limit,
-                                        'total_records': paginator.count,
-                                        'data': serializer.data,
-                              }
                               return Response(api_response, status=status.HTTP_200_OK)
+
                     except Exception as e:
-                              error_message = (
-                                        'An error occurred while searching user: {}'.format(str(e))
-                              )
+                              error_message = f"An error occurred while searching: {str(e)}"
                               error_response = {
-                                        'status': 'error',
-                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
-                                        'message': error_message,
+                                        "status": "error",
+                                        "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        "message": error_message,
                               }
-                              return Response(
-                                        error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                              )
+                              return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+          def filter_model_by_search_term(self, model, search_term):
+                    # Construct a filter condition dynamically for each model
+                    filter_conditions = reduce(operator.or_,
+                                               [Q(**{f"{field.name}__icontains": search_term}) for field in
+                                                model._meta.fields if
+                                                isinstance(field, (CharField, TextField))])
+
+                    # Apply the filter condition to the model queryset
+                    return model.objects.filter(filter_conditions)
+
+          def get_serializer_class_for_model(self, model):
+                    # Define mapping between models and serializer classes
+                    serializer_mapping = {
+                              'Events': EventSerializer,
+                              'Products': ProductSerializer,
+                              'User': UserSerializer,
+                              # Add mappings for other models as needed
+                    }
+                    return serializer_mapping.get(model, UserSerializer)
 
           def retrieve(self, request, *args, **kwargs):
                     try:
@@ -272,11 +303,11 @@ class UserLoginAPI(APIView):
                     serializer = self.serializer_class(data=request.data)
 
                     if serializer.is_valid():
-                              uname = serializer.validated_data.get('uname')
+                              uemail = serializer.validated_data.get('uemail')
                               upassword = serializer.validated_data.get('upassword')
 
                               try:
-                                        user = User.objects.get(uname=uname)
+                                        user = User.objects.get(uemail=uemail)
 
                                         if user.upassword == upassword:
                                                   user_type = None
@@ -296,7 +327,8 @@ class UserLoginAPI(APIView):
 
                                                                                 return Response(
                                                                                           {'message': 'Valid User',
-                                                                                           'user_type': user_type},
+                                                                                           'user_type': user_type,
+                                                                                           'user_id': user.uid},
                                                                                           status=status.HTTP_200_OK)
                                                                       else:
                                                                                 return Response({
@@ -624,7 +656,7 @@ class UserCountAPI(generics.ListAPIView):
                               }
                               return Response(error_response)
 
-class CarouselAPI(APIView):
+class AddCarouselImages(APIView):
           serializer_class = CarouselSerializer
 
           def post(self, request, *args, **kwargs):
@@ -635,9 +667,9 @@ class CarouselAPI(APIView):
                               images = [serializer.validated_data.get(f'image{i}') for i in range(1, 6)]
 
                               # Specify the folder path for storing image files
-                              folder_name = 'carousel_images'
-                              folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
-                              os.makedirs(folder_path, exist_ok=True)
+                              folder_name_carousel = 'carousel_images'
+                              folder_path_carousel = os.path.join(settings.MEDIA_ROOT_CAROUSEL, folder_name_carousel)
+                              os.makedirs(folder_path_carousel, exist_ok=True)
 
                               saved_file_paths = []
                               for index, base64_code in enumerate(images):
@@ -645,7 +677,7 @@ class CarouselAPI(APIView):
                                                   continue  # Skip empty fields
 
                                         image_name = f'image{index + 1}.png'  # Change the extension based on your requirements
-                                        save_path = os.path.join(folder_path, image_name)
+                                        save_path = os.path.join(folder_path_carousel, image_name)
 
                                         try:
                                                   # Write the base64 code to the file
@@ -674,24 +706,196 @@ class CarouselAPI(APIView):
 
                     return Response(serializer.errors)
 
+class GetCarouselImages(APIView):
           def get(self, request, *args, **kwargs):
                     # Specify the folder path where images are stored
-                    folder_name = 'carousel_images'
-                    folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
+                    folder_name_carousel = 'carousel_images'
+                    folder_path_carousel = os.path.join(settings.MEDIA_ROOT_CAROUSEL, folder_name_carousel)
 
                     # Check if the folder exists
-                    if not os.path.exists(folder_path):
+                    if not os.path.exists(folder_path_carousel):
                               return Response({'error': 'Image folder not found'}, status=status.HTTP_404_NOT_FOUND)
 
                     # Get a list of image files in the folder
-                    image_files = os.listdir(folder_path)
+                    image_files = os.listdir(folder_path_carousel)
 
                     # Initialize a dictionary to store base64 encoded strings of images with their corresponding filenames
                     image_data = {}
 
                     # Loop through each image file and read its contents
                     for image_file in image_files:
-                              image_path = os.path.join(folder_path, image_file)
+                              image_path = os.path.join(folder_path_carousel, image_file)
+                              try:
+                                        # Read the image file and encode it in base64
+                                        with open(image_path, 'rb') as f:
+                                                  image_bytes = f.read()
+                                                  image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+                                                  image_data[image_file] = image_base64
+                              except Exception as e:
+                                        # Handle file reading errors
+                                        error_message = f'Error reading image {image_file}: {str(e)}'
+                                        return Response({'error': error_message},
+                                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                    # Return the dictionary containing filenames and their corresponding base64 encoded image strings
+                    response_data = {
+                              'status': 'success',
+                              'code': status.HTTP_200_OK,
+                              'base64images': image_data,
+                    }
+                    return Response(response_data)
+
+class AddProfilePhoto(APIView):
+          serializer_class = ProfilePhotoSerializer
+
+          def post(self, request, *args, **kwargs):
+                    serializer = self.serializer_class(data=request.data)
+
+                    if serializer.is_valid():
+                              user_id = serializer.validated_data.get('userid')
+                              photo_base64 = serializer.validated_data.get('photo')
+
+                              # Specify the folder path for storing profile photos
+                              folder_name_profile = 'profile_photos'
+                              folder_path_profile = os.path.join(settings.MEDIA_ROOT_PROFILE, folder_name_profile)
+                              os.makedirs(folder_path_profile, exist_ok=True)
+
+                              photo_name = f'profile_photo_{user_id}.png'  # Or any desired extension
+
+                              try:
+                                        # Write the base64 code to the file
+                                        with open(os.path.join(folder_path_profile, photo_name), 'wb') as photo_file:
+                                                  photo_file.write(base64.b64decode(photo_base64))
+                              except Exception as e:
+                                        # Handle file writing errors
+                                        error_message = f'Error saving profile photo: {str(e)}'
+                                        return Response({'error': error_message},
+                                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_201_CREATED,
+                                        'message': 'Profile photo uploaded successfully',
+                                        'photo_path': os.path.join(folder_path_profile, photo_name)
+                              }
+                              return Response(response_data)
+
+                    return Response(serializer.errors)
+
+class GetProfilePhoto(APIView):
+          serializer_class = ProfilePhotoSerializer
+
+          def get(self, request, *args, **kwargs):
+                    user_id = kwargs.get('userid')
+
+                    if not user_id:
+                              return Response({'error': 'User ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+                    # Specify the folder path where profile photos are stored
+                    folder_name_profile = 'profile_photos'
+                    folder_path_profile = os.path.join(settings.MEDIA_ROOT_PROFILE, folder_name_profile)
+
+                    # Check if the folder exists
+                    if not os.path.exists(folder_path_profile):
+                              return Response({'error': 'Profile photo folder not found'},
+                                              status=status.HTTP_404_NOT_FOUND)
+
+                    photo_name = f'profile_photo_{user_id}.png'  # Or any desired extension
+                    photo_path = os.path.join(folder_path_profile, photo_name)
+
+                    # Check if the photo exists
+                    if not os.path.exists(photo_path):
+                              return Response({'error': 'Profile photo not found'}, status=status.HTTP_404_NOT_FOUND)
+
+                    try:
+                              # Read the profile photo file and encode it in base64
+                              with open(photo_path, 'rb') as f:
+                                        photo_bytes = f.read()
+                                        photo_base64 = base64.b64encode(photo_bytes).decode('utf-8')
+                    except Exception as e:
+                              # Handle file reading errors
+                              error_message = f'Error reading profile photo: {str(e)}'
+                              return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                    response_data = {
+                              'status': 'success',
+                              'code': status.HTTP_200_OK,
+                              'base64_photo': photo_base64,
+                    }
+                    return Response(response_data)
+
+class AddMultiplePhotos(APIView):
+          serializer_class = MultiplePhotosSerializer
+          max_photos_per_user = 10
+
+          def post(self, request, *args, **kwargs):
+                    serializer = self.serializer_class(data=request.data)
+
+                    if serializer.is_valid():
+                              user_id = serializer.validated_data.get('userid')
+                              photos_base64 = {int(key[5:]): value for key, value in serializer.validated_data.items()
+                                               if key.startswith('image')}
+
+                              if not photos_base64:
+                                        return Response({'error': 'At least one image must be provided'},
+                                                        status=status.HTTP_400_BAD_REQUEST)
+
+                              # Specify the folder path for storing user photos
+                              folder_name_multiple = f'user_{user_id}_photos'
+                              folder_path_multiple = os.path.join(settings.MEDIA_ROOT_MULTIPLE, folder_name_multiple)
+                              os.makedirs(folder_path_multiple, exist_ok=True)
+
+                              saved_file_paths = []
+                              for field_number, photo_base64 in photos_base64.items():
+                                        photo_name = f'photo_{field_number}.png'  # Correctly number the photo based on the field number
+                                        save_path = os.path.join(folder_path_multiple, photo_name)
+
+                                        try:
+                                                  # Write the base64 code to the file
+                                                  with open(save_path, 'wb') as photo_file:
+                                                            photo_file.write(base64.b64decode(photo_base64))
+                                        except Exception as e:
+                                                  # Handle file writing errors
+                                                  error_message = f'Error saving photo {field_number}: {str(e)}'
+                                                  return Response({'error': error_message},
+                                                                  status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                                        saved_file_paths.append(save_path)
+
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_201_CREATED,
+                                        'message': 'Photos uploaded successfully',
+                                        'saved_file_paths': saved_file_paths
+                              }
+                              return Response(response_data)
+
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class GetMultiplePhotos(APIView):
+          def get(self, request, *args, **kwargs):
+                    user_id = self.kwargs.get('userid')
+
+                    if not user_id:
+                              return Response({'error': 'User ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+                    # Specify the folder path for storing user photos
+                    folder_name_multiple = f'user_{user_id}_photos'
+                    folder_path_multiple = os.path.join(settings.MEDIA_ROOT_MULTIPLE, folder_name_multiple)
+
+                    if not os.path.exists(folder_path_multiple):
+                              return Response({'error': 'Photos not found for this user'},
+                                              status=status.HTTP_404_NOT_FOUND)
+
+                    # Get a list of image files in the folder
+                    image_files = os.listdir(folder_path_multiple)
+
+                    # Initialize a dictionary to store base64 encoded strings of images with their corresponding filenames
+                    image_data = {}
+
+                    # Loop through each image file and read its contents
+                    for image_file in image_files:
+                              image_path = os.path.join(folder_path_multiple, image_file)
                               try:
                                         # Read the image file and encode it in base64
                                         with open(image_path, 'rb') as f:

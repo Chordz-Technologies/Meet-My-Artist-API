@@ -133,10 +133,19 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/dev/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 
-MEDIA_ROOT = os.path.join(BASE_DIR, 'carousel_images')
-MEDIA_URL = "/carousel_images/"
+# Your existing MEDIA_ROOT and MEDIA_URL configurations
+MEDIA_ROOT_CAROUSEL = os.path.join(BASE_DIR, 'carousel_images')
+MEDIA_URL_CAROUSEL = "/carousel_images/"
+
+# New configuration for profile photos
+MEDIA_ROOT_PROFILE = os.path.join(BASE_DIR, 'profile_photos')
+MEDIA_URL_PROFILE = "/profile_photos/"
+
+# New configuration for 10 photos per user
+MEDIA_ROOT_MULTIPLE = os.path.join(BASE_DIR, 'multiple_photos')
+MEDIA_URL_MULTIPLE = "/multiple_photos/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field

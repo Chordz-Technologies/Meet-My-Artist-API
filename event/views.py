@@ -3,7 +3,7 @@ from event.models import Events
 from event.serializers import EventSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
-from rest_framework import status
+from rest_framework import status, generics
 from rest_framework.response import Response
 
 # Create your views here.
@@ -189,3 +189,37 @@ class NotificationforEvents(APIView):
                                         'message': 'Internal Server Error',
                                         'data': str(e)
                               }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class GetEventbyUid(generics.ListAPIView):
+          serializer_class = EventSerializer
+
+          def get(self, request, *args, **kwargs):
+                    try:
+                              user_id = self.kwargs.get('uid')
+                              queryset = Events.objects.filter(uid=user_id)
+                              serializer = self.get_serializer(instance=queryset,
+                                                               many=True)  # Pass queryset as instance
+                              api_response = {
+                                        'status': 'success',
+                                        'code': status.HTTP_200_OK,
+                                        'message': f'All events by user {user_id}',
+                                        'event_data': serializer.data,
+                              }
+                              return Response(api_response, status=status.HTTP_200_OK)  # Return 200 status
+                    except Events.DoesNotExist:
+                              api_response = {
+                                        'status': 'error',
+                                        'code': status.HTTP_404_NOT_FOUND,
+                                        'message': f'No events found by user {user_id}',
+                                        'event_data': [],
+                              }
+                              return Response(api_response, status=status.HTTP_404_NOT_FOUND)  # Return 404 status
+                    except Exception as e:
+                              error_msg = 'An error occurred: {}'.format(str(e))
+                              error_response = {
+                                        'status': 'error',
+                                        'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                        'message': error_msg
+                              }
+                              return Response(error_response,
+                                              status=status.HTTP_500_INTERNAL_SERVER_ERROR)  # Return 500 status

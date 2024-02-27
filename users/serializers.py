@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
                     return representation
 
 class UserLoginSerializer(serializers.Serializer):
-          uname = serializers.CharField(required=True)
+          uemail = serializers.CharField(required=True)
           upassword = serializers.CharField(required=True)
           utypeartist = serializers.IntegerField(required=True)
           utypeorganizer = serializers.IntegerField(required=True)
@@ -49,3 +49,28 @@ class CarouselSerializer(serializers.Serializer):
                     # Remove empty fields from the validated data
                     validated_data = {key: value for key, value in attrs.items() if value.strip()}
                     return validated_data
+
+class ProfilePhotoSerializer(serializers.Serializer):
+          userid = serializers.IntegerField()
+          photo = serializers.CharField()
+
+class MultiplePhotosSerializer(serializers.Serializer):
+          userid = serializers.IntegerField()
+          image1 = serializers.CharField(required=False)
+          image2 = serializers.CharField(required=False)
+          image3 = serializers.CharField(required=False)
+          image4 = serializers.CharField(required=False)
+          image5 = serializers.CharField(required=False)
+          image6 = serializers.CharField(required=False)
+          image7 = serializers.CharField(required=False)
+          image8 = serializers.CharField(required=False)
+          image9 = serializers.CharField(required=False)
+          image10 = serializers.CharField(required=False)
+
+          def validate(self, data):
+                    # Remove empty image fields before validation
+                    data_copy = data.copy()
+                    for key in data_copy:
+                              if data_copy[key] is None:
+                                        del data[key]
+                    return data
