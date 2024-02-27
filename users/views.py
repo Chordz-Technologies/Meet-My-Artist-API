@@ -18,6 +18,7 @@ from products.models import Products
 from artistcategories.models import Artistcategories
 from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer, ProfilePhotoSerializer, \
           MultiplePhotosSerializer
+from users.serializers import UserSerializer, UserLoginSerializer, CarouselSerializer
 from event.serializers import EventSerializer
 from products.serializers import ProductSerializer
 from artistcategories.serializers import ArtistcategoriesSerializer

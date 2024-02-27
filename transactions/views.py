@@ -7,6 +7,7 @@ from rest_framework.viewsets import ModelViewSet
 from transactions.models import Atransaction, Otransaction, Utransaction
 from transactions.serializers import AtSerializer, OtSerializer, UtSerializer
 from users.models import User
+from subscription.models import Subscription
 
 # Create your views here.
 
@@ -591,7 +592,7 @@ class SubscriptionforUser(generics.ListAPIView):
                               subscription_duration = subscription.sduration
 
                               # Calculate end date for the subscription
-                              end_date = latest_transaction.otdate + timedelta(days=subscription_duration)
+                              end_date = latest_transaction.utdate + timedelta(days=subscription_duration)
 
                               # Calculate remaining days for the subscription
                               remaining_days = max((end_date - current_date).days, 0)
