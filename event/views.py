@@ -1,6 +1,9 @@
+import os
+import base64
 from datetime import datetime, timedelta
+from django.conf import settings
 from event.models import Events
-from event.serializers import EventSerializer
+from event.serializers import EventSerializer, EventPosterSerializer
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework import status, generics
@@ -223,3 +226,82 @@ class GetEventbyUid(generics.ListAPIView):
                               }
                               return Response(error_response,
                                               status=status.HTTP_500_INTERNAL_SERVER_ERROR)  # Return 500 status
+
+class AddEventPoster(APIView):
+          serializer_class = EventPosterSerializer
+
+          def post(self, request, *args, **kwargs):
+                    serializer = self.serializer_class(data=request.data)
+
+                    if serializer.is_valid():
+                              event_id = serializer.validated_data.get('eventid')
+                              photo_base64 = serializer.validated_data.get('poster')
+
+                              # Specify the folder path for storing profile photos
+                              folder_name_event = 'event_posters'
+                              folder_path_event = os.path.join(settings.MEDIA_ROOT_EVENT, folder_name_event)
+                              os.makedirs(folder_path_event, exist_ok=True)
+
+                              photo_name = f'event_poster_{event_id}.png'  # Or any desired extension
+
+                              try:
+                                        # Write the base64 code to the file
+                                        with open(os.path.join(folder_path_event, photo_name), 'wb') as photo_file:
+                                                  photo_file.write(base64.b64decode(photo_base64))
+                              except Exception as e:
+                                        # Handle file writing errors
+                                        error_message = f'Error saving event poster: {str(e)}'
+                                        return Response({'error': error_message},
+                                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                              response_data = {
+                                        'status': 'success',
+                                        'code': status.HTTP_201_CREATED,
+                                        'message': 'Event poster uploaded successfully',
+                                        'photo_path': os.path.join(folder_path_event, photo_name)
+                              }
+                              return Response(response_data)
+
+                    return Response(serializer.errors)
+
+class GetEventPoster(APIView):
+          serializer_class = EventPosterSerializer
+
+          def get(self, request, *args, **kwargs):
+                    event_id = self.kwargs.get('eventid')
+
+                    if not event_id:
+                              return Response({'error': 'Event ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+                    # Specify the folder path where profile photos are stored
+                    folder_name_event = 'event_posters'
+                    folder_path_event = os.path.join(settings.MEDIA_ROOT_EVENT, folder_name_event)
+
+                    # Check if the folder exists
+                    if not os.path.exists(folder_path_event):
+                              return Response({'error': 'Event poster folder not found'},
+                                              status=status.HTTP_404_NOT_FOUND)
+
+                    photo_name = f'event_poster_{event_id}.png'  # Or any desired extension
+                    photo_path = os.path.join(folder_path_event, photo_name)
+
+                    # Check if the photo exists
+                    if not os.path.exists(photo_path):
+                              return Response({'error': 'Event poster not found'}, status=status.HTTP_404_NOT_FOUND)
+
+                    try:
+                              # Read the profile photo file and encode it in base64
+                              with open(photo_path, 'rb') as f:
+                                        photo_bytes = f.read()
+                                        photo_base64 = base64.b64encode(photo_bytes).decode('utf-8')
+                    except Exception as e:
+                              # Handle file reading errors
+                              error_message = f'Error reading event poster: {str(e)}'
+                              return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+                    response_data = {
+                              'status': 'success',
+                              'code': status.HTTP_200_OK,
+                              'base64_photo': photo_base64,
+                    }
+                    return Response(response_data)

@@ -147,6 +147,14 @@ MEDIA_URL_PROFILE = "/profile_photos/"
 MEDIA_ROOT_MULTIPLE = os.path.join(BASE_DIR, 'multiple_photos')
 MEDIA_URL_MULTIPLE = "/multiple_photos/"
 
+# New configuration for event poster
+MEDIA_ROOT_EVENT = os.path.join(BASE_DIR, 'event_posters')
+MEDIA_URL_EVENT = "/event_posters/"
+
+# New configuration for product photos
+MEDIA_ROOT_PRODUCT = os.path.join(BASE_DIR, 'product_photos')
+MEDIA_URL_PRODUCT = "/product_photos/"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/dev/ref/settings/#default-auto-field
 

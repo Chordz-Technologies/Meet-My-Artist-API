@@ -694,7 +694,6 @@ class AddCarouselImages(APIView):
                                                   return Response({'error': 'Request body exceeded maximum size.'},
                                                                   status=413)
 
-                                        print('images saved')
                                         saved_file_paths.append(save_path)
 
                               response_data = {
@@ -717,17 +716,17 @@ class GetCarouselImages(APIView):
                     if not os.path.exists(folder_path_carousel):
                               return Response({'error': 'Image folder not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    # Get a list of image files in the folder
+                    # Get a list of image files in the folder and sort them
                     image_files = os.listdir(folder_path_carousel)
+                    image_files.sort()  # Sort the list of filenames
 
                     # Initialize a dictionary to store base64 encoded strings of images with their corresponding filenames
                     image_data = {}
 
-                    # Loop through each image file and read its contents
+                    # Loop through each image file, read its contents, and encode it in base64
                     for image_file in image_files:
                               image_path = os.path.join(folder_path_carousel, image_file)
                               try:
-                                        # Read the image file and encode it in base64
                                         with open(image_path, 'rb') as f:
                                                   image_bytes = f.read()
                                                   image_base64 = base64.b64encode(image_bytes).decode('utf-8')
@@ -787,7 +786,7 @@ class GetProfilePhoto(APIView):
           serializer_class = ProfilePhotoSerializer
 
           def get(self, request, *args, **kwargs):
-                    user_id = kwargs.get('userid')
+                    user_id = self.kwargs.get('userid')
 
                     if not user_id:
                               return Response({'error': 'User ID is required'}, status=status.HTTP_400_BAD_REQUEST)

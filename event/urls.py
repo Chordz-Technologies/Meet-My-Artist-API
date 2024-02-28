@@ -1,5 +1,5 @@
 from django.urls import path
-from event.views import EventAPI, NotificationforEvents, GetEventbyUid
+from event.views import EventAPI, NotificationforEvents, GetEventbyUid, AddEventPoster, GetEventPoster
 
 # router = routers.DefaultRouter()
 # router.register('', eventAPI)
@@ -16,5 +16,8 @@ urlpatterns = [
           path('eventNotifications/', NotificationforEvents.as_view()),
 
           path('getEventsbyUid/<int:uid>/', GetEventbyUid.as_view()),
+
+          path('getEventPoster/<int:eventid>/', GetEventPoster.as_view()),
+          path('addEventPoster/', AddEventPoster.as_view()),
 
 ]
