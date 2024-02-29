@@ -50,6 +50,7 @@ class AdminAPI(ModelViewSet):
                                         'code': status.HTTP_500_INTERNAL_SERVER_ERROR,
                                         'message': error_msg,
                               }
+                              return Response(error_response)
 
           def create(self, request, *args, **kwargs):
                     try:
