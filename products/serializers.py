@@ -8,4 +8,4 @@ class ProductSerializer(serializers.ModelSerializer):
 
 class ProductPhotoSerializer(serializers.Serializer):
           productid = serializers.IntegerField()
-          photo = serializers.CharField()
+          photo = serializers.ImageField()

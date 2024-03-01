@@ -152,7 +152,7 @@ MEDIA_ROOT_EVENT = os.path.join(BASE_DIR, 'event_posters')
 MEDIA_URL_EVENT = "/event_posters/"
 
 # New configuration for product photos
-MEDIA_ROOT_PRODUCT = os.path.join(BASE_DIR, 'product_photos')
+MEDIA_ROOT_PRODUCT = os.path.join('product_photos')
 MEDIA_URL_PRODUCT = "/product_photos/"
 
 # Default primary key field type

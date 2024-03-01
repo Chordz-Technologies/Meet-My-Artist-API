@@ -1,6 +1,8 @@
 import os
 import base64
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.http import HttpResponse
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
@@ -58,7 +60,34 @@ class ProductsAPI(ModelViewSet):
                     try:
                               serializer = self.get_serializer(data=request.data)
                               serializer.is_valid(raise_exception=True)
-                              serializer.save()
+                              # Save the product details
+                              instance = serializer.save()
+
+                              # Ensure instance has been saved and has a valid ID (pid)
+                              if instance.pid:
+                                        # Handle file upload separately
+                                        photo = request.FILES.get('pimages')
+                                        if photo:
+                                                  # Construct the file path
+                                                  filename = f'product_{instance.pid}.png'
+                                                  file_path = os.path.join(settings.MEDIA_ROOT_PRODUCT, filename)
+
+                                                  # Create the directory if it doesn't exist
+                                                  os.makedirs(settings.MEDIA_ROOT_PRODUCT, exist_ok=True)
+
+                                                  # Write the image data to the file
+                                                  with open(file_path, 'wb') as image_file:
+                                                            for chunk in photo.chunks():
+                                                                      image_file.write(chunk)
+
+                                                  # Update the instance with the relative file path
+                                                  instance.pimages = os.path.join(settings.MEDIA_URL_PRODUCT, filename)
+                                                  instance.save()
+                                        else:
+                                                  raise ValueError("No photo data found in the request.")
+                              else:
+                                        raise ValueError("Failed to retrieve product ID.")
+
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
@@ -67,13 +96,13 @@ class ProductsAPI(ModelViewSet):
                               }
                               return Response(api_response, status=status.HTTP_201_CREATED)
                     except Exception as e:
-                              error_message = 'Failed to add product details:{}'.format(str(e))
+                              error_message = 'Failed to add product details: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                    return Response(error_response)
+                              return Response(error_response)
 
           def update(self, request, *args, **kwargs):
                     try:
@@ -147,30 +176,35 @@ class AddProductPhoto(APIView):
 
                     if serializer.is_valid():
                               product_id = serializer.validated_data.get('productid')
-                              photo_base64 = serializer.validated_data.get('photo')
+                              photo = serializer.validated_data.get('photo')
 
-                              # Specify the folder path for storing profile photos
-                              folder_name_product = 'product_photos'
-                              folder_path_product = os.path.join(settings.MEDIA_ROOT_PRODUCT, folder_name_product)
-                              os.makedirs(folder_path_product, exist_ok=True)
+                              # Create the directory if it doesn't exist
+                              if not os.path.exists(settings.MEDIA_ROOT_PRODUCT):
+                                        os.makedirs(settings.MEDIA_ROOT_PRODUCT, exist_ok=True)
 
-                              photo_name = f'product_photo_{product_id}.png'  # Or any desired extension
-
+                              # Check if there is an existing photo for the product
                               try:
-                                        # Write the base64 code to the file
-                                        with open(os.path.join(folder_path_product, photo_name), 'wb') as photo_file:
-                                                  photo_file.write(base64.b64decode(photo_base64))
-                              except Exception as e:
-                                        # Handle file writing errors
-                                        error_message = f'Error saving product photo: {str(e)}'
-                                        return Response({'error': error_message},
-                                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                                        product_instance = Products.objects.get(pid=product_id)
+                                        if product_instance.pimages:
+                                                  # If there's an existing photo, delete it
+                                                  product_instance.pimages.delete()
+                              except Products.DoesNotExist:
+                                        # If the product doesn't exist, return an error
+                                        return Response({'error': 'Product not found'},
+                                                        status=status.HTTP_404_NOT_FOUND)
+
+                              # Construct the file name using the product ID
+                              file_name = f'product_{product_id}.png'  # Or any desired extension
+                              # Construct the full file path including the directory and the file name
+                              file_path = os.path.join(settings.MEDIA_ROOT_PRODUCT, file_name)
+                              # Save the image to the specified file path
+                              product_instance.pimages.save(file_path, photo, save=True)
 
                               response_data = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
                                         'message': 'Product photo uploaded successfully',
-                                        'photo_path': os.path.join(folder_path_product, photo_name)
+                                        'photo_url': os.path.join(settings.MEDIA_URL_PRODUCT, file_name)
                               }
                               return Response(response_data)
 
@@ -185,35 +219,17 @@ class GetProductPhoto(APIView):
                     if not product_id:
                               return Response({'error': 'Product ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-                    # Specify the folder path where profile photos are stored
-                    folder_name_product = 'product_photos'
-                    folder_path_product = os.path.join(settings.MEDIA_ROOT_PRODUCT, folder_name_product)
+                    try:
+                              product_instance = Products.objects.get(pid=product_id)
+                    except Products.DoesNotExist:
+                              return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    # Check if the folder exists
-                    if not os.path.exists(folder_path_product):
-                              return Response({'error': 'Product photo folder not found'},
-                                              status=status.HTTP_404_NOT_FOUND)
-
-                    photo_name = f'product_photo_{product_id}.png'  # Or any desired extension
-                    photo_path = os.path.join(folder_path_product, photo_name)
-
-                    # Check if the photo exists
-                    if not os.path.exists(photo_path):
+                    if not product_instance.pimages:
                               return Response({'error': 'Product photo not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    try:
-                              # Read the profile photo file and encode it in base64
-                              with open(photo_path, 'rb') as f:
-                                        photo_bytes = f.read()
-                                        photo_base64 = base64.b64encode(photo_bytes).decode('utf-8')
-                    except Exception as e:
-                              # Handle file reading errors
-                              error_message = f'Error reading product photo: {str(e)}'
-                              return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    image_path = product_instance.pimages.path
 
-                    response_data = {
-                              'status': 'success',
-                              'code': status.HTTP_200_OK,
-                              'base64_photo': photo_base64,
-                    }
-                    return Response(response_data)
+                    # Read the image file and return it as HttpResponse
+                    with open(image_path, 'rb') as image_file:
+                              return HttpResponse(image_file.read(),
+                                                  content_type='image/png')  # Adjust content type as needed
