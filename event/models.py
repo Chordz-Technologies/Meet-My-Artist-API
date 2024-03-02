@@ -15,8 +15,8 @@ class Events(models.Model):
                                         null=True)  # Field name made lowercase.
           edate = models.DateField(db_column='Edate', blank=True, null=True)  # Field name made lowercase.
           etime = models.TimeField(db_column='Etime', blank=True, null=True)  # Field name made lowercase.
-          eposter = models.CharField(db_column='Eposter', max_length=200, blank=True,
-                                     null=True)  # Field name made lowercase.
+          eposter = models.ImageField(upload_to='event_posters', db_column='Eposter', max_length=200, blank=True,
+                                      null=True)  # Field name made lowercase.
           orequirements = models.CharField(db_column='Orequirements', max_length=200, blank=True,
                                            null=True)  # Field name made lowercase.
           erequirements = models.IntegerField(db_column='Erequirements', blank=True,

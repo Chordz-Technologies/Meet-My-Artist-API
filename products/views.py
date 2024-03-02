@@ -58,41 +58,36 @@ class ProductsAPI(ModelViewSet):
 
           def create(self, request, *args, **kwargs):
                     try:
-                              serializer = self.get_serializer(data=request.data)
+                              serializer = self.serializer_class(data=request.data)
                               serializer.is_valid(raise_exception=True)
-                              # Save the product details
                               instance = serializer.save()
 
-                              # Ensure instance has been saved and has a valid ID (pid)
-                              if instance.pid:
-                                        # Handle file upload separately
-                                        photo = request.FILES.get('pimages')
-                                        if photo:
-                                                  # Construct the file path
-                                                  filename = f'product_{instance.pid}.png'
-                                                  file_path = os.path.join(settings.MEDIA_ROOT_PRODUCT, filename)
+                              # Get the uploaded image instance
+                              uploaded_image = instance.pimages
 
-                                                  # Create the directory if it doesn't exist
-                                                  os.makedirs(settings.MEDIA_ROOT_PRODUCT, exist_ok=True)
+                              # Get the current file path
+                              current_file_path = uploaded_image.path
 
-                                                  # Write the image data to the file
-                                                  with open(file_path, 'wb') as image_file:
-                                                            for chunk in photo.chunks():
-                                                                      image_file.write(chunk)
+                              # Specify the new file name
+                              new_file_name = f'product_{instance.pid}.png'
 
-                                                  # Update the instance with the relative file path
-                                                  instance.pimages = os.path.join(settings.MEDIA_URL_PRODUCT, filename)
-                                                  instance.save()
-                                        else:
-                                                  raise ValueError("No photo data found in the request.")
-                              else:
-                                        raise ValueError("Failed to retrieve product ID.")
+                              # Create the new file path
+                              new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                              # Rename the file
+                              os.rename(current_file_path, new_file_path)
+
+                              # Update the instance with the new file name
+                              instance.pimages.name = new_file_path
+
+                              # Update the instance in the database with the new file name
+                              instance.save()
 
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
                                         'message': 'Product details added successfully',
-                                        'new_product': serializer.data,
+                                        'new_product': serializer.data,  # Include serialized data in response
                               }
                               return Response(api_response, status=status.HTTP_201_CREATED)
                     except Exception as e:
@@ -102,7 +97,7 @@ class ProductsAPI(ModelViewSet):
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                              return Response(error_response)
+                              return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
           def update(self, request, *args, **kwargs):
                     try:
@@ -168,47 +163,29 @@ class ProductsAPI(ModelViewSet):
                               }
                     return Response(error_response)
 
-class AddProductPhoto(APIView):
-          serializer_class = ProductPhotoSerializer
-
-          def post(self, request, *args, **kwargs):
-                    serializer = self.serializer_class(data=request.data)
-
-                    if serializer.is_valid():
-                              product_id = serializer.validated_data.get('productid')
-                              photo = serializer.validated_data.get('photo')
-
-                              # Create the directory if it doesn't exist
-                              if not os.path.exists(settings.MEDIA_ROOT_PRODUCT):
-                                        os.makedirs(settings.MEDIA_ROOT_PRODUCT, exist_ok=True)
-
-                              # Check if there is an existing photo for the product
-                              try:
-                                        product_instance = Products.objects.get(pid=product_id)
-                                        if product_instance.pimages:
-                                                  # If there's an existing photo, delete it
-                                                  product_instance.pimages.delete()
-                              except Products.DoesNotExist:
-                                        # If the product doesn't exist, return an error
-                                        return Response({'error': 'Product not found'},
-                                                        status=status.HTTP_404_NOT_FOUND)
-
-                              # Construct the file name using the product ID
-                              file_name = f'product_{product_id}.png'  # Or any desired extension
-                              # Construct the full file path including the directory and the file name
-                              file_path = os.path.join(settings.MEDIA_ROOT_PRODUCT, file_name)
-                              # Save the image to the specified file path
-                              product_instance.pimages.save(file_path, photo, save=True)
-
-                              response_data = {
-                                        'status': 'success',
-                                        'code': status.HTTP_201_CREATED,
-                                        'message': 'Product photo uploaded successfully',
-                                        'photo_url': os.path.join(settings.MEDIA_URL_PRODUCT, file_name)
-                              }
-                              return Response(response_data)
-
-                    return Response(serializer.errors)
+# class AddProductImage(APIView):
+#
+#           def post(self, request, *args, **kwargs):
+#                     product_id = request.data.get('pid')
+#                     product_image = request.FILES.get('pimage')
+#
+#                     try:
+#                               # Retrieve the product instance
+#                               product = Products.objects.get(pk=product_id)
+#                     except Products.DoesNotExist:
+#                               return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+#
+#                     # Update the product instance with the uploaded image
+#                     product.pimages = product_image
+#                     product.save()
+#
+#                     response_data = {
+#                               'status': 'success',
+#                               'code': status.HTTP_201_CREATED,
+#                               'message': 'Product image uploaded successfully',
+#                               'image_path': product.pimages.url  # Get the URL of the uploaded image
+#                     }
+#                     return Response(response_data, status=status.HTTP_201_CREATED)
 
 class GetProductPhoto(APIView):
           serializer_class = ProductPhotoSerializer

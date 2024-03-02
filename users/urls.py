@@ -1,7 +1,7 @@
 from django.urls import path
 
 from users.views import UserAPI, UserLoginAPI, ArtistByCategoryAPI, UserCountAPI, OrganizerByCategoryAPI, \
-          getWishlistAPI, addToWishlist, deleteFromWishlist, getLikesAPI, addToLikes, deleteFromLikes, AddProfilePhoto, \
+          getWishlistAPI, addToWishlist, deleteFromWishlist, getLikesAPI, addToLikes, deleteFromLikes, \
           GetProfilePhoto, AddMultiplePhotos, GetMultiplePhotos, GetCarouselImages, AddCarouselImages
 
 # router = routers.DefaultRouter()
@@ -30,8 +30,8 @@ urlpatterns = [
           path('getCarouselImages/', GetCarouselImages.as_view()),
           path('addCarouselImages/', AddCarouselImages.as_view()),
 
-          path('getProfilePhoto/<int:userid>/', GetProfilePhoto.as_view()),
-          path('addProfilePhoto/', AddProfilePhoto.as_view()),
+          path('getProfilePhoto/<int:uid>/', GetProfilePhoto.as_view()),
+          # path('addProfilePhoto/', AddProfilePhoto.as_view()),
 
           path('getMultiplePhotos/<int:userid>/', GetMultiplePhotos.as_view()),
           path('addMultiplePhotos/', AddMultiplePhotos.as_view()),

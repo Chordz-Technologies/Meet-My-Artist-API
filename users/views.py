@@ -5,6 +5,7 @@ import operator
 from functools import reduce
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
+from django.http import HttpResponse
 from django.db.models import Max, Count, CharField, TextField
 from rest_framework import status
 from rest_framework import generics
@@ -153,7 +154,35 @@ class UserAPI(ModelViewSet):
                               serializer = self.get_serializer(data=request.data,
                                                                context={'include_array_fields': True})
                               serializer.is_valid(raise_exception=True)
-                              serializer.save()
+                              instance = serializer.save()
+
+                              # Get the uploaded image instance
+                              if instance.utypeartist == 1:
+                                        uploaded_image = instance.aprofilephoto
+                              else:
+                                        uploaded_image = instance.oprofilephoto
+
+                              # Get the current file path
+                              current_file_path = uploaded_image.path
+
+                              # Specify the new file name
+                              new_file_name = f'user_{instance.uid}.png'
+
+                              # Create the new file path
+                              new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                              # Rename the file
+                              os.rename(current_file_path, new_file_path)
+
+                              # Update the instance with the new file name
+                              if instance.utypeartist == 1:
+                                        instance.aprofilephoto.name = new_file_path
+                              else:
+                                        instance.oprofilephoto.name = new_file_path
+
+                              # Update the instance in the database with the new file name
+                              instance.save()
+
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_201_CREATED,
@@ -321,15 +350,19 @@ class UserLoginAPI(APIView):
                                                                                 'utypeuser', False):
                                                                                 if user.utypeartist:
                                                                                           user_type = 'artist'
+                                                                                          user_status = user.artiststatus
                                                                                 elif user.utypeorganizer:
                                                                                           user_type = 'organizer'
+                                                                                          user_status = user.organizerstatus
                                                                                 elif user.utypeuser:
                                                                                           user_type = 'user'
+                                                                                          user_status = user.userstatus
 
                                                                                 return Response(
                                                                                           {'message': 'Valid User',
                                                                                            'user_type': user_type,
-                                                                                           'user_id': user.uid},
+                                                                                           'user_id': user.uid,
+                                                                                           'status': user_status},
                                                                                           status=status.HTTP_200_OK)
                                                                       else:
                                                                                 return Response({
@@ -745,84 +778,69 @@ class GetCarouselImages(APIView):
                     }
                     return Response(response_data)
 
-class AddProfilePhoto(APIView):
-          serializer_class = ProfilePhotoSerializer
-
-          def post(self, request, *args, **kwargs):
-                    serializer = self.serializer_class(data=request.data)
-
-                    if serializer.is_valid():
-                              user_id = serializer.validated_data.get('userid')
-                              photo_base64 = serializer.validated_data.get('photo')
-
-                              # Specify the folder path for storing profile photos
-                              folder_name_profile = 'profile_photos'
-                              folder_path_profile = os.path.join(settings.MEDIA_ROOT_PROFILE, folder_name_profile)
-                              os.makedirs(folder_path_profile, exist_ok=True)
-
-                              photo_name = f'profile_photo_{user_id}.png'  # Or any desired extension
-
-                              try:
-                                        # Write the base64 code to the file
-                                        with open(os.path.join(folder_path_profile, photo_name), 'wb') as photo_file:
-                                                  photo_file.write(base64.b64decode(photo_base64))
-                              except Exception as e:
-                                        # Handle file writing errors
-                                        error_message = f'Error saving profile photo: {str(e)}'
-                                        return Response({'error': error_message},
-                                                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-                              response_data = {
-                                        'status': 'success',
-                                        'code': status.HTTP_201_CREATED,
-                                        'message': 'Profile photo uploaded successfully',
-                                        'photo_path': os.path.join(folder_path_profile, photo_name)
-                              }
-                              return Response(response_data)
-
-                    return Response(serializer.errors)
+# class AddProfilePhoto(APIView):
+#           serializer_class = ProfilePhotoSerializer
+#
+#           def post(self, request, *args, **kwargs):
+#                     serializer = self.serializer_class(data=request.data)
+#
+#                     if serializer.is_valid():
+#                               user_id = serializer.validated_data.get('userid')
+#                               photo_base64 = serializer.validated_data.get('photo')
+#
+#                               # Specify the folder path for storing profile photos
+#                               folder_name_profile = 'profile_photos'
+#                               folder_path_profile = os.path.join(settings.MEDIA_ROOT_PROFILE, folder_name_profile)
+#                               os.makedirs(folder_path_profile, exist_ok=True)
+#
+#                               photo_name = f'profile_photo_{user_id}.png'  # Or any desired extension
+#
+#                               try:
+#                                         # Write the base64 code to the file
+#                                         with open(os.path.join(folder_path_profile, photo_name), 'wb') as photo_file:
+#                                                   photo_file.write(base64.b64decode(photo_base64))
+#                               except Exception as e:
+#                                         # Handle file writing errors
+#                                         error_message = f'Error saving profile photo: {str(e)}'
+#                                         return Response({'error': error_message},
+#                                                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#
+#                               response_data = {
+#                                         'status': 'success',
+#                                         'code': status.HTTP_201_CREATED,
+#                                         'message': 'Profile photo uploaded successfully',
+#                                         'photo_path': os.path.join(folder_path_profile, photo_name)
+#                               }
+#                               return Response(response_data)
+#
+#                     return Response(serializer.errors)
 
 class GetProfilePhoto(APIView):
           serializer_class = ProfilePhotoSerializer
 
           def get(self, request, *args, **kwargs):
-                    user_id = self.kwargs.get('userid')
+                    userid = self.kwargs.get('uid')
 
-                    if not user_id:
+                    if not userid:
                               return Response({'error': 'User ID is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-                    # Specify the folder path where profile photos are stored
-                    folder_name_profile = 'profile_photos'
-                    folder_path_profile = os.path.join(settings.MEDIA_ROOT_PROFILE, folder_name_profile)
+                    try:
+                              user_instance = User.objects.get(uid=userid)
+                    except User.DoesNotExist:
+                              return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    # Check if the folder exists
-                    if not os.path.exists(folder_path_profile):
-                              return Response({'error': 'Profile photo folder not found'},
-                                              status=status.HTTP_404_NOT_FOUND)
-
-                    photo_name = f'profile_photo_{user_id}.png'  # Or any desired extension
-                    photo_path = os.path.join(folder_path_profile, photo_name)
-
-                    # Check if the photo exists
-                    if not os.path.exists(photo_path):
+                    if not user_instance.aprofilephoto or user_instance.oprofilephoto:
                               return Response({'error': 'Profile photo not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    try:
-                              # Read the profile photo file and encode it in base64
-                              with open(photo_path, 'rb') as f:
-                                        photo_bytes = f.read()
-                                        photo_base64 = base64.b64encode(photo_bytes).decode('utf-8')
-                    except Exception as e:
-                              # Handle file reading errors
-                              error_message = f'Error reading profile photo: {str(e)}'
-                              return Response({'error': error_message}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    if user_instance.utypeartist == 1:
+                              image_path = user_instance.aprofilephoto.path
+                    else:
+                              image_path = user_instance.oprofilephoto.path
 
-                    response_data = {
-                              'status': 'success',
-                              'code': status.HTTP_200_OK,
-                              'base64_photo': photo_base64,
-                    }
-                    return Response(response_data)
+                    # Read the image file and return it as HttpResponse
+                    with open(image_path, 'rb') as image_file:
+                              return HttpResponse(image_file.read(),
+                                                  content_type='image/png')  # Adjust content type as needed
 
 class AddMultiplePhotos(APIView):
           serializer_class = MultiplePhotosSerializer

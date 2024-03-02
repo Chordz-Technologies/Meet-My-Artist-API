@@ -35,8 +35,9 @@ class User(models.Model):
                                     default='[]')  # Field name made lowercase.
           uwishlist = models.CharField(db_column='Uwishlist', max_length=1000, blank=True, null=True,
                                        default='[]')  # Field name made lowercase.
-          aprofilephoto = models.CharField(db_column='Aprofilephoto', max_length=200, blank=True, null=True,
-                                           default=' ')  # Field name made lowercase.
+          aprofilephoto = models.ImageField(upload_to='profile_photos', db_column='Aprofilephoto', max_length=200,
+                                            blank=True, null=True,
+                                            default=' ')  # Field name made lowercase.
           afblink = models.CharField(db_column='Afblink', max_length=200, blank=True, null=True,
                                      default=' ')  # Field name made lowercase.
           ainstalink = models.CharField(db_column='Ainstalink', max_length=200, blank=True, null=True,
@@ -73,8 +74,9 @@ class User(models.Model):
                                           default=' ')  # Field name made lowercase.
           artiststatus = models.CharField(db_column='Artiststatus', max_length=30, blank=True, null=True,
                                           default=' ')  # Field name made lowercase.
-          oprofilephoto = models.CharField(db_column='Oprofilephoto', max_length=200, blank=True, null=True,
-                                           default=' ')  # Field name made lowercase.
+          oprofilephoto = models.ImageField(upload_to='profile_photos', db_column='Oprofilephoto', max_length=200,
+                                            blank=True, null=True,
+                                            default=' ')  # Field name made lowercase.
           obusinessname = models.CharField(db_column='Obusinessname', max_length=50, blank=True, null=True,
                                            default=' ')  # Field name made lowercase.
           obusinesscategory = models.CharField(db_column='Obusinesscategory', max_length=50, blank=True, null=True,
