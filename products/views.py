@@ -1,5 +1,6 @@
 import os
 import base64
+from django.db import transaction
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.http import HttpResponse
@@ -101,17 +102,44 @@ class ProductsAPI(ModelViewSet):
 
           def update(self, request, *args, **kwargs):
                     try:
-                              instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data)
-                              serializer.is_valid(raise_exception=True)
-                              serializer.save()
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
-                              }
-                              return Response(api_response)
+                              with transaction.atomic():
+                                        instance = self.get_object()
+                                        serializer = self.get_serializer(instance, data=request.data)
+                                        serializer.is_valid(raise_exception=True)
+                                        instance = serializer.save()
+
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.pimages
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'product_{instance.pid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        instance.pimages.name = new_file_path
+
+                                        # Update the instance in the database with the new file name
+                                        instance.save()
+
+                                        api_response = {
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'Product updated successfully',
+                                                  'updated_product': serializer.data,
+                                        }
+                                        return Response(api_response, status=status.HTTP_200_OK)
                     except Exception as e:
                               error_message = 'Failed to update product details:{}'.format(str(e))
                               error_response = {
@@ -119,21 +147,48 @@ class ProductsAPI(ModelViewSet):
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                    return Response(error_response)
+                              return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
           def partial_update(self, request, *args, **kwargs):
                     try:
-                              instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data, partial=True)
-                              serializer.is_valid(raise_exception=True)
-                              serializer.save()
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': 'Product updated successfully',
-                                        'updated_product': serializer.data,
-                              }
-                              return Response(api_response)
+                              with transaction.atomic():
+                                        instance = self.get_object()
+                                        serializer = self.get_serializer(instance, data=request.data, partial=True)
+                                        serializer.is_valid(raise_exception=True)
+                                        instance = serializer.save()
+
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.pimages
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'product_{instance.pid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        instance.pimages.name = new_file_path
+
+                                        # Update the instance in the database with the new file name
+                                        instance.save()
+
+                                        api_response = {
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'Product partially updated successfully',
+                                                  'updated_product': serializer.data,
+                                        }
+                                        return Response(api_response, status=status.HTTP_200_OK)
                     except Exception as e:
                               error_message = 'Failed to partially update product details:{}'.format(str(e))
                               error_response = {
@@ -141,7 +196,7 @@ class ProductsAPI(ModelViewSet):
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                    return Response(error_response)
+                              return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
           def destroy(self, request, *args, **kwargs):
                     try:

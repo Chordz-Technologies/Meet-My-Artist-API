@@ -1,13 +1,13 @@
 import os
-import base64
 from datetime import datetime, timedelta
+from django.db import transaction
 from django.http import HttpResponse
-from event.models import Events
-from event.serializers import EventSerializer, EventPosterSerializer
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.views import APIView
 from rest_framework import status, generics
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
+from event.models import Events
+from event.serializers import EventSerializer, EventPosterSerializer
 
 # Create your views here.
 class EventAPI(ModelViewSet):
@@ -99,17 +99,45 @@ class EventAPI(ModelViewSet):
 
           def update(self, request, *args, **kwargs):
                     try:
-                              instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data)
-                              serializer.is_valid(raise_exception=True)
-                              serializer.save()
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': 'Event updated successfully',
-                                        'updated_event': serializer.data,
-                              }
-                              return Response(api_response)
+                              with transaction.atomic():
+
+                                        instance = self.get_object()
+                                        serializer = self.get_serializer(instance, data=request.data)
+                                        serializer.is_valid(raise_exception=True)
+                                        instance = serializer.save()
+
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.eposter
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'eposter_{instance.eid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        instance.eposter.name = new_file_path
+
+                                        # Update the instance in the database with the new file name
+                                        instance.save()
+
+                                        api_response = {
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'Event updated successfully',
+                                                  'updated_event': serializer.data,
+                                        }
+                                        return Response(api_response)
                     except Exception as e:
                               error_message = 'Failed to update Event details:{}'.format(str(e))
                               error_response = {

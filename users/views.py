@@ -3,6 +3,7 @@ import os
 import base64
 import operator
 from functools import reduce
+from django.db import transaction
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
 from django.http import HttpResponse
@@ -53,7 +54,7 @@ class UserAPI(ModelViewSet):
 
           def search(self, request, *args, **kwargs):
                     try:
-                              search_term = request.query_params.get('search_term')
+                              search_term = request.query_params.get('search_term', '').lower()
                               if not search_term:
                                         return Response({"message": "Please provide a search term"},
                                                         status=status.HTTP_400_BAD_REQUEST)
@@ -76,7 +77,8 @@ class UserAPI(ModelViewSet):
                                         # Process and serialize the search results for each model
                                         serialized_results = {}
                                         for model_name, queryset in search_results.items():
-                                                  serializer_class = self.get_serializer_class_for_model(model)
+                                                  serializer_class = self.get_serializer_class_for_model(
+                                                            model_name)  # Pass model name
                                                   serializer = serializer_class(queryset, many=True)
                                                   serialized_results[model_name] = serializer.data
 
@@ -110,6 +112,9 @@ class UserAPI(ModelViewSet):
                               return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
           def filter_model_by_search_term(self, model, search_term):
+                    # Convert search term to lowercase
+                    search_term = search_term.lower()
+
                     # Construct a filter condition dynamically for each model
                     filter_conditions = reduce(operator.or_,
                                                [Q(**{f"{field.name}__icontains": search_term}) for field in
@@ -119,15 +124,18 @@ class UserAPI(ModelViewSet):
                     # Apply the filter condition to the model queryset
                     return model.objects.filter(filter_conditions)
 
-          def get_serializer_class_for_model(self, model):
-                    # Define mapping between models and serializer classes
+          def get_serializer_class_for_model(self, model_name):
+                    # Define mapping between model names and serializer classes
                     serializer_mapping = {
                               'Events': EventSerializer,
                               'Products': ProductSerializer,
                               'User': UserSerializer,
                               # Add mappings for other models as needed
                     }
-                    return serializer_mapping.get(model, UserSerializer)
+                    serializer_class = serializer_mapping.get(model_name)
+                    if serializer_class is None:
+                              print(f"No serializer class found for model: {model_name}")
+                    return serializer_class
 
           def retrieve(self, request, *args, **kwargs):
                     try:
@@ -201,18 +209,51 @@ class UserAPI(ModelViewSet):
 
           def update(self, request, *args, **kwargs):
                     try:
-                              instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data,
-                                                               context={'include_array_fields': True})
-                              serializer.is_valid(raise_exception=True)
-                              serializer.save()
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': 'User updated successfully',
-                                        'updated_user': serializer.data,
-                              }
-                              return Response(api_response)
+                              with transaction.atomic():
+                                        instance = self.get_object()
+                                        serializer = self.get_serializer(instance, data=request.data,
+                                                                         context={'include_array_fields': True})
+                                        serializer.is_valid(raise_exception=True)
+                                        instance = serializer.save()
+
+                                        # Get the uploaded image instance
+                                        if instance.utypeartist == 1:
+                                                  uploaded_image = instance.aprofilephoto
+                                        else:
+                                                  uploaded_image = instance.oprofilephoto
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'user_{instance.uid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        if instance.utypeartist == 1:
+                                                  instance.aprofilephoto.name = new_file_path
+                                        else:
+                                                  instance.oprofilephoto.name = new_file_path
+
+                                        # Update the instance in the database with the new file name
+                                        instance.save()
+
+                                        api_response = {
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'User updated successfully',
+                                                  'updated_user': serializer.data,
+                                        }
+                                        return Response(api_response)
                     except Exception as e:
                               error_msg = 'Failed to update: {}'.format(str(e))
                               error_response = {
@@ -224,18 +265,51 @@ class UserAPI(ModelViewSet):
 
           def partial_update(self, request, *args, **kwargs):
                     try:
-                              instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data, partial=True,
-                                                               context={'include_array_fields': True})
-                              serializer.is_valid(raise_exception=True)
-                              serializer.save()
-                              api_response = {
-                                        'status': 'success',
-                                        'code': status.HTTP_200_OK,
-                                        'message': 'User partially updated successfully',
-                                        'updated_user': serializer.data,
-                              }
-                              return Response(api_response)
+                              with transaction.atomic():
+                                        instance = self.get_object()
+                                        serializer = self.get_serializer(instance, data=request.data, partial=True,
+                                                                         context={'include_array_fields': True})
+                                        serializer.is_valid(raise_exception=True)
+                                        instnce = serializer.save()
+
+                                        # Get the uploaded image instance
+                                        if instance.utypeartist == 1:
+                                                  uploaded_image = instance.aprofilephoto
+                                        else:
+                                                  uploaded_image = instance.oprofilephoto
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'user_{instance.uid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        if instance.utypeartist == 1:
+                                                  instance.aprofilephoto.name = new_file_path
+                                        else:
+                                                  instance.oprofilephoto.name = new_file_path
+
+                                        # Update the instance in the database with the new file name
+                                        instance.save()
+
+                                        api_response = {
+                                                  'status': 'success',
+                                                  'code': status.HTTP_200_OK,
+                                                  'message': 'User partially updated successfully',
+                                                  'updated_user': serializer.data,
+                                        }
+                                        return Response(api_response)
                     except Exception as e:
                               error_msg = 'Failed to partially update: {}'.format(str(e))
                               error_response = {
