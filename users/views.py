@@ -216,33 +216,36 @@ class UserAPI(ModelViewSet):
                                         serializer.is_valid(raise_exception=True)
                                         instance = serializer.save()
 
-                                        # Get the uploaded image instance
-                                        if instance.utypeartist == 1:
-                                                  uploaded_image = instance.aprofilephoto
-                                        else:
-                                                  uploaded_image = instance.oprofilephoto
+                                        # Check if 'image' field is present in the request data
+                                        if 'image' in request.data:
+                                                  # Get the uploaded image instance
+                                                  if instance.utypeartist == 1:
+                                                            uploaded_image = instance.aprofilephoto
+                                                  else:
+                                                            uploaded_image = instance.oprofilephoto
 
-                                        # Get the current file path
-                                        current_file_path = uploaded_image.path
+                                                  # Get the current file path
+                                                  current_file_path = uploaded_image.path
 
-                                        # Specify the new file name
-                                        new_file_name = f'user_{instance.uid}.png'
+                                                  # Specify the new file name
+                                                  new_file_name = f'user_{instance.uid}.png'
 
-                                        # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                                  # Create the new file path
+                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                               new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                                  # Delete the old file if it exists
+                                                  if os.path.exists(new_file_path):
+                                                            os.remove(new_file_path)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                                  # Rename the file
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Update the instance with the new file name
-                                        if instance.utypeartist == 1:
-                                                  instance.aprofilephoto.name = new_file_path
-                                        else:
-                                                  instance.oprofilephoto.name = new_file_path
+                                                  # Update the instance with the new file name
+                                                  if instance.utypeartist == 1:
+                                                            instance.aprofilephoto.name = new_file_path
+                                                  else:
+                                                            instance.oprofilephoto.name = new_file_path
 
                                         # Update the instance in the database with the new file name
                                         instance.save()
@@ -270,37 +273,32 @@ class UserAPI(ModelViewSet):
                                         serializer = self.get_serializer(instance, data=request.data, partial=True,
                                                                          context={'include_array_fields': True})
                                         serializer.is_valid(raise_exception=True)
-                                        instnce = serializer.save()
+                                        instance = serializer.save()
 
-                                        # Get the uploaded image instance
-                                        if instance.utypeartist == 1:
-                                                  uploaded_image = instance.aprofilephoto
-                                        else:
-                                                  uploaded_image = instance.oprofilephoto
+                                        # Check if 'image' field is present in the request data
+                                        if 'image' in request.data:
+                                                  # Get the uploaded image instance
+                                                  uploaded_image = instance.aprofilephoto if instance.utypeartist == 1 else instance.oprofilephoto
 
-                                        # Get the current file path
-                                        current_file_path = uploaded_image.path
+                                                  # Get the current file path
+                                                  current_file_path = uploaded_image.path
 
-                                        # Specify the new file name
-                                        new_file_name = f'user_{instance.uid}.png'
+                                                  # Specify the new file name
+                                                  new_file_name = f'user_{instance.uid}.png'
 
-                                        # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                                  # Create the new file path
+                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                               new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                                  # Rename the file
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                                  # Update the instance with the new file name
+                                                  uploaded_image.name = new_file_name
 
-                                        # Update the instance with the new file name
-                                        if instance.utypeartist == 1:
-                                                  instance.aprofilephoto.name = new_file_path
-                                        else:
-                                                  instance.oprofilephoto.name = new_file_path
+                                        # Update other fields as needed
 
-                                        # Update the instance in the database with the new file name
+                                        # Save the instance
                                         instance.save()
 
                                         api_response = {

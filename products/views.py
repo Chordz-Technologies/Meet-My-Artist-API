@@ -108,27 +108,30 @@ class ProductsAPI(ModelViewSet):
                                         serializer.is_valid(raise_exception=True)
                                         instance = serializer.save()
 
-                                        # Get the uploaded image instance
-                                        uploaded_image = instance.pimages
+                                        # Check if 'image' field is present in the request data
+                                        if 'image' in request.data:
+                                                  # Get the uploaded image instance
+                                                  uploaded_image = instance.pimages
 
-                                        # Get the current file path
-                                        current_file_path = uploaded_image.path
+                                                  # Get the current file path
+                                                  current_file_path = uploaded_image.path
 
-                                        # Specify the new file name
-                                        new_file_name = f'product_{instance.pid}.png'
+                                                  # Specify the new file name
+                                                  new_file_name = f'product_{instance.pid}.png'
 
-                                        # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                                  # Create the new file path
+                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                               new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                                  # Delete the old file if it exists
+                                                  if os.path.exists(new_file_path):
+                                                            os.remove(new_file_path)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                                  # Rename the file
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Update the instance with the new file name
-                                        instance.pimages.name = new_file_path
+                                                  # Update the instance with the new file name
+                                                  instance.pimages.name = new_file_path
 
                                         # Update the instance in the database with the new file name
                                         instance.save()
@@ -157,27 +160,30 @@ class ProductsAPI(ModelViewSet):
                                         serializer.is_valid(raise_exception=True)
                                         instance = serializer.save()
 
-                                        # Get the uploaded image instance
-                                        uploaded_image = instance.pimages
+                                        # Check if 'image' field is present in the request data
+                                        if 'image' in request.data:
+                                                  # Get the uploaded image instance
+                                                  uploaded_image = instance.pimages
 
-                                        # Get the current file path
-                                        current_file_path = uploaded_image.path
+                                                  # Get the current file path
+                                                  current_file_path = uploaded_image.path
 
-                                        # Specify the new file name
-                                        new_file_name = f'product_{instance.pid}.png'
+                                                  # Specify the new file name
+                                                  new_file_name = f'product_{instance.pid}.png'
 
-                                        # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                                  # Create the new file path
+                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                               new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                                  # Delete the old file if it exists
+                                                  if os.path.exists(new_file_path):
+                                                            os.remove(new_file_path)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                                  # Rename the file
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Update the instance with the new file name
-                                        instance.pimages.name = new_file_path
+                                                  # Update the instance with the new file name
+                                                  instance.pimages.name = new_file_path
 
                                         # Update the instance in the database with the new file name
                                         instance.save()

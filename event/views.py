@@ -106,27 +106,30 @@ class EventAPI(ModelViewSet):
                                         serializer.is_valid(raise_exception=True)
                                         instance = serializer.save()
 
-                                        # Get the uploaded image instance
-                                        uploaded_image = instance.eposter
+                                        # Check if 'image' field is present in the request data
+                                        if 'image' in request.data:
+                                                  # Get the uploaded image instance
+                                                  uploaded_image = instance.eposter
 
-                                        # Get the current file path
-                                        current_file_path = uploaded_image.path
+                                                  # Get the current file path
+                                                  current_file_path = uploaded_image.path
 
-                                        # Specify the new file name
-                                        new_file_name = f'eposter_{instance.eid}.png'
+                                                  # Specify the new file name
+                                                  new_file_name = f'eposter_{instance.eid}.png'
 
-                                        # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                                  # Create the new file path
+                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                               new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                                  # Delete the old file if it exists
+                                                  if os.path.exists(new_file_path):
+                                                            os.remove(new_file_path)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                                  # Rename the file
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Update the instance with the new file name
-                                        instance.eposter.name = new_file_path
+                                                  # Update the instance with the new file name
+                                                  instance.eposter.name = new_file_path
 
                                         # Update the instance in the database with the new file name
                                         instance.save()
@@ -152,7 +155,35 @@ class EventAPI(ModelViewSet):
                               instance = self.get_object()
                               serializer = self.get_serializer(instance, data=request.data, partial=True)
                               serializer.is_valid(raise_exception=True)
-                              serializer.save()
+                              instance = serializer.save()
+
+                              # Check if 'image' field is present in the request data
+                              if 'image' in request.data:
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.eposter
+
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
+
+                                        # Specify the new file name
+                                        new_file_name = f'eposter_{instance.eid}.png'
+
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
+
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        instance.eposter.name = new_file_path
+
+                              # Update the instance in the database with the new file name
+                              instance.save()
+
                               api_response = {
                                         'status': 'success',
                                         'code': status.HTTP_200_OK,

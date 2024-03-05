@@ -11,6 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
 
                     # Fields for which you want array-type response
                     array_fields = [
+                              'abookeddate',
                               'alikes',
                               'aphotos',
                               'awishlist',

@@ -64,8 +64,8 @@ class User(models.Model):
                                     default=' ')  # Field name made lowercase.
           aphotos = models.CharField(db_column='Aphotos', max_length=200, blank=True, null=True,
                                      default=' ')  # Field name made lowercase.
-          abookeddate = models.DateField(db_column='Abookeddate', blank=True, null=True,
-                                         default=datetime.date(2024, 1, 1))  # Field name made lowercase.
+          abookeddate = models.CharField(db_column='Abookeddate', max_length=1000, blank=True, null=True,
+                                         default='[]')  # Field name made lowercase.
           artistsubsdate = models.DateField(db_column='Artistsubsdate', blank=True, null=True,
                                             default=datetime.date(2024, 1, 1))  # Field name made lowercase.
           arequirements = models.CharField(db_column='Arequirements', max_length=50, blank=True, null=True,
