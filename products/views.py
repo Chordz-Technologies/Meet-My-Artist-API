@@ -1,5 +1,7 @@
 import os
 import base64
+from PIL import Image
+from io import BytesIO
 from django.db import transaction
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -63,23 +65,30 @@ class ProductsAPI(ModelViewSet):
                               serializer.is_valid(raise_exception=True)
                               instance = serializer.save()
 
-                              # Get the uploaded image instance
-                              uploaded_image = instance.pimages
+                              # Check if 'image' field is present in the request data
+                              if 'image' in request.data:
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.pimages
 
-                              # Get the current file path
-                              current_file_path = uploaded_image.path
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
 
-                              # Specify the new file name
-                              new_file_name = f'product_{instance.pid}.png'
+                                        # Specify the new file name
+                                        new_file_name = f'product_{instance.pid}.png'
 
-                              # Create the new file path
-                              new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                     new_file_name)
 
-                              # Rename the file
-                              os.rename(current_file_path, new_file_path)
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
 
-                              # Update the instance with the new file name
-                              instance.pimages.name = new_file_path
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        instance.pimages.name = new_file_path
 
                               # Update the instance in the database with the new file name
                               instance.save()
@@ -133,8 +142,8 @@ class ProductsAPI(ModelViewSet):
                                                   # Update the instance with the new file name
                                                   instance.pimages.name = new_file_path
 
-                                        # Update the instance in the database with the new file name
-                                        instance.save()
+                                                  # Update the instance in the database with the new file name
+                                                  instance.save()
 
                                         api_response = {
                                                   'status': 'success',
@@ -185,8 +194,8 @@ class ProductsAPI(ModelViewSet):
                                                   # Update the instance with the new file name
                                                   instance.pimages.name = new_file_path
 
-                                        # Update the instance in the database with the new file name
-                                        instance.save()
+                                                  # Update the instance in the database with the new file name
+                                                  instance.save()
 
                                         api_response = {
                                                   'status': 'success',
@@ -252,22 +261,27 @@ class GetProductPhoto(APIView):
           serializer_class = ProductPhotoSerializer
 
           def get(self, request, *args, **kwargs):
-                    product_id = self.kwargs.get('productid')
+                    productid = self.kwargs.get('pid')
 
-                    if not product_id:
-                              return Response({'error': 'Product ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+                    if not productid:
+                              return Response({'error': 'Product ID is required'},
+                                              status=status.HTTP_400_BAD_REQUEST)
 
                     try:
-                              product_instance = Products.objects.get(pid=product_id)
+                              product_instance = Products.objects.get(pid=productid)
                     except Products.DoesNotExist:
                               return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    if not product_instance.pimages:
-                              return Response({'error': 'Product photo not found'}, status=status.HTTP_404_NOT_FOUND)
+                    product_photo = product_instance.pimages
 
-                    image_path = product_instance.pimages.path
+                    if not product_photo:
+                              return Response({'error': 'Product photo not found'},
+                                              status=status.HTTP_404_NOT_FOUND)
 
-                    # Read the image file and return it as HttpResponse
-                    with open(image_path, 'rb') as image_file:
-                              return HttpResponse(image_file.read(),
-                                                  content_type='image/png')  # Adjust content type as needed
+                    # Use PIL to determine content type
+                    image = Image.open(product_photo.path)
+                    content_type = f'image/{image.format.lower()}'
+
+                    # Return the profile photo as HttpResponse
+                    with open(product_photo.path, 'rb') as image_file:
+                              return HttpResponse(image_file.read(), content_type=content_type)

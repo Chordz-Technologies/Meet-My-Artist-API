@@ -1,4 +1,6 @@
 import os
+from PIL import Image
+from io import BytesIO
 from datetime import datetime, timedelta
 from django.db import transaction
 from django.http import HttpResponse
@@ -60,25 +62,32 @@ class EventAPI(ModelViewSet):
                               serializer.is_valid(raise_exception=True)
                               instance = serializer.save()
 
-                              # Get the uploaded image instance
-                              uploaded_image = instance.eposter
+                              # Check if 'image' field is present and is valid
+                              if 'image' in request.data and request.data['image']:
+                                        # Get the uploaded image instance
+                                        uploaded_image = instance.eposter
 
-                              # Get the current file path
-                              current_file_path = uploaded_image.path
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
 
-                              # Specify the new file name
-                              new_file_name = f'eposter_{instance.eid}.png'
+                                        # Specify the new file name
+                                        new_file_name = f'eposter_{instance.eid}.png'
 
-                              # Create the new file path
-                              new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                     new_file_name)
 
-                              # Rename the file
-                              os.rename(current_file_path, new_file_path)
+                                        # Delete the old file if it exists
+                                        if os.path.exists(current_file_path):
+                                                  os.remove(current_file_path)
 
-                              # Update the instance with the new file name
-                              instance.eposter.name = new_file_path
+                                        # Rename the file
+                                        os.rename(new_file_path, current_file_path)
 
-                              # Update the instance in the database with the new file name
+                                        # Update the instance with the new file name
+                                        instance.eposter.name = new_file_name
+
+                              # Update the instance in the database
                               instance.save()
 
                               api_response = {
@@ -100,14 +109,13 @@ class EventAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               with transaction.atomic():
-
                                         instance = self.get_object()
                                         serializer = self.get_serializer(instance, data=request.data)
                                         serializer.is_valid(raise_exception=True)
                                         instance = serializer.save()
 
-                                        # Check if 'image' field is present in the request data
-                                        if 'image' in request.data:
+                                        # Check if 'image' field is present and is valid
+                                        if 'image' in request.data and request.data['image']:
                                                   # Get the uploaded image instance
                                                   uploaded_image = instance.eposter
 
@@ -122,17 +130,17 @@ class EventAPI(ModelViewSet):
                                                                                new_file_name)
 
                                                   # Delete the old file if it exists
-                                                  if os.path.exists(new_file_path):
-                                                            os.remove(new_file_path)
+                                                  if os.path.exists(current_file_path):
+                                                            os.remove(current_file_path)
 
                                                   # Rename the file
-                                                  os.rename(current_file_path, new_file_path)
+                                                  os.rename(new_file_path, current_file_path)
 
                                                   # Update the instance with the new file name
-                                                  instance.eposter.name = new_file_path
+                                                  instance.eposter.name = new_file_name
 
-                                        # Update the instance in the database with the new file name
-                                        instance.save()
+                                                  # Update the instance in the database
+                                                  instance.save()
 
                                         api_response = {
                                                   'status': 'success',
@@ -142,13 +150,13 @@ class EventAPI(ModelViewSet):
                                         }
                                         return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to update Event details:{}'.format(str(e))
+                              error_message = 'Failed to update Event details: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                    return Response(error_response)
+                              return Response(error_response)
 
           def partial_update(self, request, *args, **kwargs):
                     try:
@@ -157,8 +165,8 @@ class EventAPI(ModelViewSet):
                               serializer.is_valid(raise_exception=True)
                               instance = serializer.save()
 
-                              # Check if 'image' field is present in the request data
-                              if 'image' in request.data:
+                              # Check if 'image' field is present and is valid
+                              if 'image' in request.data and request.data['image']:
                                         # Get the uploaded image instance
                                         uploaded_image = instance.eposter
 
@@ -172,17 +180,17 @@ class EventAPI(ModelViewSet):
                                         new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
 
                                         # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                        if os.path.exists(current_file_path):
+                                                  os.remove(current_file_path)
 
                                         # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                        os.rename(new_file_path, current_file_path)
 
                                         # Update the instance with the new file name
-                                        instance.eposter.name = new_file_path
+                                        instance.eposter.name = new_file_name
 
-                              # Update the instance in the database with the new file name
-                              instance.save()
+                                        # Update the instance in the database
+                                        instance.save()
 
                               api_response = {
                                         'status': 'success',
@@ -192,13 +200,13 @@ class EventAPI(ModelViewSet):
                               }
                               return Response(api_response)
                     except Exception as e:
-                              error_message = 'Failed to partially update event details:{}'.format(str(e))
+                              error_message = 'Failed to partially update event details: {}'.format(str(e))
                               error_response = {
                                         'status': 'error',
                                         'code': status.HTTP_400_BAD_REQUEST,
                                         'message': error_message
                               }
-                    return Response(error_response)
+                              return Response(error_response)
 
           def destroy(self, request, *args, **kwargs):
                     try:
@@ -349,22 +357,27 @@ class GetEventPoster(APIView):
           serializer_class = EventPosterSerializer
 
           def get(self, request, *args, **kwargs):
-                    event_id = self.kwargs.get('eventid')
+                    eventid = self.kwargs.get('eid')
 
-                    if not event_id:
-                              return Response({'error': 'Event ID is required'}, status=status.HTTP_400_BAD_REQUEST)
+                    if not eventid:
+                              return Response({'error': 'Event ID is required'},
+                                              status=status.HTTP_400_BAD_REQUEST)
 
                     try:
-                              event_instance = Events.objects.get(eid=event_id)
+                              event_instance = Events.objects.get(eid=eventid)
                     except Events.DoesNotExist:
                               return Response({'error': 'Event not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    if not event_instance.eposter:
-                              return Response({'error': 'Event poster not found'}, status=status.HTTP_404_NOT_FOUND)
+                    event_photo = event_instance.eposter
 
-                    image_path = event_instance.eposter.path
+                    if not event_photo:
+                              return Response({'error': 'Event poster not found'},
+                                              status=status.HTTP_404_NOT_FOUND)
 
-                    # Read the image file and return it as HttpResponse
-                    with open(image_path, 'rb') as image_file:
-                              return HttpResponse(image_file.read(),
-                                                  content_type='image/png')  # Adjust content type as needed
+                    # Use PIL to determine content type
+                    image = Image.open(event_photo.path)
+                    content_type = f'image/{image.format.lower()}'
+
+                    # Return the profile photo as HttpResponse
+                    with open(event_photo.path, 'rb') as image_file:
+                              return HttpResponse(image_file.read(), content_type=content_type)

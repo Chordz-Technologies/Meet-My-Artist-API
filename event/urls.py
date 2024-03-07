@@ -17,7 +17,7 @@ urlpatterns = [
 
           path('getEventsbyUid/<int:uid>/', GetEventbyUid.as_view()),
 
-          path('getEventPoster/<int:eventid>/', GetEventPoster.as_view()),
+          path('getEventPoster/<int:eid>/', GetEventPoster.as_view()),
           # path('addEventPoster/', AddEventPoster.as_view()),
 
 ]

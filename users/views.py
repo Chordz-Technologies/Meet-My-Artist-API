@@ -3,6 +3,8 @@ import os
 import base64
 import operator
 from functools import reduce
+from PIL import Image
+from io import BytesIO
 from django.db import transaction
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
@@ -164,29 +166,36 @@ class UserAPI(ModelViewSet):
                               serializer.is_valid(raise_exception=True)
                               instance = serializer.save()
 
-                              # Get the uploaded image instance
-                              if instance.utypeartist == 1:
-                                        uploaded_image = instance.aprofilephoto
-                              else:
-                                        uploaded_image = instance.oprofilephoto
+                              # Check if 'image' field is present in the request data
+                              if 'image' in request.data:
+                                        # Get the uploaded image instance
+                                        if instance.utypeartist == 1:
+                                                  uploaded_image = instance.aprofilephoto
+                                        else:
+                                                  uploaded_image = instance.oprofilephoto
 
-                              # Get the current file path
-                              current_file_path = uploaded_image.path
+                                        # Get the current file path
+                                        current_file_path = uploaded_image.path
 
-                              # Specify the new file name
-                              new_file_name = f'user_{instance.uid}.png'
+                                        # Specify the new file name
+                                        new_file_name = f'user_{instance.uid}.png'
 
-                              # Create the new file path
-                              new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
+                                        # Create the new file path
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path),
+                                                                     new_file_name)
 
-                              # Rename the file
-                              os.rename(current_file_path, new_file_path)
+                                        # Delete the old file if it exists
+                                        if os.path.exists(new_file_path):
+                                                  os.remove(new_file_path)
 
-                              # Update the instance with the new file name
-                              if instance.utypeartist == 1:
-                                        instance.aprofilephoto.name = new_file_path
-                              else:
-                                        instance.oprofilephoto.name = new_file_path
+                                        # Rename the file
+                                        os.rename(current_file_path, new_file_path)
+
+                                        # Update the instance with the new file name
+                                        if instance.utypeartist == 1:
+                                                  instance.aprofilephoto.name = new_file_path
+                                        else:
+                                                  instance.oprofilephoto.name = new_file_path
 
                               # Update the instance in the database with the new file name
                               instance.save()
@@ -247,8 +256,8 @@ class UserAPI(ModelViewSet):
                                                   else:
                                                             instance.oprofilephoto.name = new_file_path
 
-                                        # Update the instance in the database with the new file name
-                                        instance.save()
+                                                  # Update the instance in the database with the new file name
+                                                  instance.save()
 
                                         api_response = {
                                                   'status': 'success',
@@ -296,10 +305,10 @@ class UserAPI(ModelViewSet):
                                                   # Update the instance with the new file name
                                                   uploaded_image.name = new_file_name
 
-                                        # Update other fields as needed
+                                                  # Update other fields as needed
 
-                                        # Save the instance
-                                        instance.save()
+                                                  # Save the instance
+                                                  instance.save()
 
                                         api_response = {
                                                   'status': 'success',
@@ -901,18 +910,21 @@ class GetProfilePhoto(APIView):
                     except User.DoesNotExist:
                               return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    if not user_instance.aprofilephoto or user_instance.oprofilephoto:
+                    if user_instance.utypeartist == 1:
+                              profile_photo = user_instance.aprofilephoto
+                    else:
+                              profile_photo = user_instance.oprofilephoto
+
+                    if not profile_photo:
                               return Response({'error': 'Profile photo not found'}, status=status.HTTP_404_NOT_FOUND)
 
-                    if user_instance.utypeartist == 1:
-                              image_path = user_instance.aprofilephoto.path
-                    else:
-                              image_path = user_instance.oprofilephoto.path
+                    # Use PIL to determine content type
+                    image = Image.open(profile_photo.path)
+                    content_type = f'image/{image.format.lower()}'
 
-                    # Read the image file and return it as HttpResponse
-                    with open(image_path, 'rb') as image_file:
-                              return HttpResponse(image_file.read(),
-                                                  content_type='image/png')  # Adjust content type as needed
+                    # Return the profile photo as HttpResponse
+                    with open(profile_photo.path, 'rb') as image_file:
+                              return HttpResponse(image_file.read(), content_type=content_type)
 
 class AddMultiplePhotos(APIView):
           serializer_class = MultiplePhotosSerializer
