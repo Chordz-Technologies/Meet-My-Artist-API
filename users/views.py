@@ -9,6 +9,7 @@ from django.db import transaction
 from django.core.exceptions import RequestDataTooBig
 from django.conf import settings
 from django.http import HttpResponse
+from django.core.files.storage import FileSystemStorage
 from django.db.models import Max, Count, CharField, TextField
 from rest_framework import status
 from rest_framework import generics
@@ -218,62 +219,31 @@ class UserAPI(ModelViewSet):
 
           def update(self, request, *args, **kwargs):
                     try:
-                              with transaction.atomic():
-                                        instance = self.get_object()
-                                        serializer = self.get_serializer(instance, data=request.data,
-                                                                         context={'include_array_fields': True})
-                                        serializer.is_valid(raise_exception=True)
-                                        instance = serializer.save()
+                              instance = self.get_object()
+                              serializer = self.get_serializer(instance, data=request.data)
+                              serializer.is_valid(raise_exception=True)
 
-                                        # Check if 'image' field is present in the request data
-                                        if 'image' in request.data:
-                                                  # Get the uploaded image instance
-                                                  if instance.utypeartist == 1:
-                                                            uploaded_image = instance.aprofilephoto
-                                                  else:
-                                                            uploaded_image = instance.oprofilephoto
+                              # Check if 'aprofilephoto' is present in the request data
+                              if 'aprofilephoto' in request.data:
+                                        instance.aprofilephoto = request.data['aprofilephoto']
+                              # Check if 'oprofilephoto' is present in the request data
+                              elif 'oprofilephoto' in request.data:
+                                        instance.oprofilephoto = request.data['oprofilephoto']
+                              else:
+                                        # If neither 'aprofilephoto' nor 'oprofilephoto' is present,
+                                        # retain the existing profile photo path
+                                        instance.aprofilephoto = instance.aprofilephoto
+                                        instance.oprofilephoto = instance.oprofilephoto
 
-                                                  # Get the current file path
-                                                  current_file_path = uploaded_image.path
+                              # Save the instance after updating the profile photo path
+                              instance.save()
 
-                                                  # Specify the new file name
-                                                  new_file_name = f'user_{instance.uid}.png'
-
-                                                  # Create the new file path
-                                                  new_file_path = os.path.join(os.path.dirname(current_file_path),
-                                                                               new_file_name)
-
-                                                  # Delete the old file if it exists
-                                                  if os.path.exists(new_file_path):
-                                                            os.remove(new_file_path)
-
-                                                  # Rename the file
-                                                  os.rename(current_file_path, new_file_path)
-
-                                                  # Update the instance with the new file name
-                                                  if instance.utypeartist == 1:
-                                                            instance.aprofilephoto.name = new_file_path
-                                                  else:
-                                                            instance.oprofilephoto.name = new_file_path
-
-                                                  # Update the instance in the database with the new file name
-                                                  instance.save()
-
-                                        api_response = {
-                                                  'status': 'success',
-                                                  'code': status.HTTP_200_OK,
-                                                  'message': 'User updated successfully',
-                                                  'updated_user': serializer.data,
-                                        }
-                                        return Response(api_response)
+                              return Response({'status': 'success', 'message': 'User updated successfully',
+                                               'updated_user': serializer.data})
                     except Exception as e:
                               error_msg = 'Failed to update: {}'.format(str(e))
-                              error_response = {
-                                        'status': 'error',
-                                        'code': status.HTTP_400_BAD_REQUEST,
-                                        'message': error_msg,
-                              }
-                              return Response(error_response)
+                              error_response = {'status': 'error', 'message': error_msg}
+                              return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
           def partial_update(self, request, *args, **kwargs):
                     try:
