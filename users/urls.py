@@ -2,7 +2,7 @@ from django.urls import path
 
 from users.views import UserAPI, UserLoginAPI, ArtistByCategoryAPI, UserCountAPI, OrganizerByCategoryAPI, \
           getWishlistAPI, addToWishlist, deleteFromWishlist, getLikesAPI, addToLikes, deleteFromLikes, \
-          GetProfilePhoto, AddMultiplePhotos, GetMultiplePhotos, GetCarouselImages, AddCarouselImages
+          GetProfilePhoto, AddMultiplePhotos, GetMultiplePhotos, GetCarouselImages, AddCarouselImages, SendMessageAPI
 
 # router = routers.DefaultRouter()
 # router.register(r'Users', UserAPI)
@@ -43,5 +43,7 @@ urlpatterns = [
           path('getTotalLikes/<int:uid>/', getLikesAPI.as_view()),
           path('addtoLikes/<int:uid>/<int:liked_user_id>/', addToLikes.as_view()),
           path('removefromLikes/<int:uid>/<int:liked_user_id>/', deleteFromLikes.as_view()),
+
+          path('sendMessage/', SendMessageAPI.as_view()),
 
 ]

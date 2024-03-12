@@ -7,6 +7,7 @@ from PIL import Image
 from io import BytesIO
 from django.db import transaction
 from django.core.exceptions import RequestDataTooBig
+from django.core.mail import send_mail
 from django.conf import settings
 from django.http import HttpResponse
 from django.core.files.storage import FileSystemStorage
@@ -83,7 +84,18 @@ class UserAPI(ModelViewSet):
                                                   serializer_class = self.get_serializer_class_for_model(
                                                             model_name)  # Pass model name
                                                   serializer = serializer_class(queryset, many=True)
-                                                  serialized_results[model_name] = serializer.data
+                                                  # Separate users based on their type
+                                                  if model_name == 'User':
+                                                            users = serializer.data
+                                                            user_types = {'artists': [], 'organizers': []}
+                                                            for user in users:
+                                                                      if user['utypeartist'] == 1:
+                                                                                user_types['artists'].append(user)
+                                                                      if user['utypeorganizer'] == 1:
+                                                                                user_types['organizers'].append(user)
+                                                            serialized_results[model_name] = user_types
+                                                  else:
+                                                            serialized_results[model_name] = serializer.data
 
                                         # Construct the API response with search results
                                         api_response = {
@@ -987,3 +999,28 @@ class GetMultiplePhotos(APIView):
                               'base64images': image_data,
                     }
                     return Response(response_data)
+
+class SendMessageAPI(APIView):
+          def post(self, request):
+                    subject = request.data.get('subject', '')
+                    sender_email = request.data.get('email', '')
+                    message = request.data.get('message', '')
+
+                    # Adding sender's email address to the message content
+                    if sender_email:
+                              message = f'From : {sender_email}' + f'\n\nMessage : {message}'
+
+                    if not subject or not sender_email or not message:
+                              return Response({'error': 'Subject, email, and message are required.'},
+                                              status=status.HTTP_400_BAD_REQUEST)
+
+                    recipient_email = 'prajwalpunekar9565@gmail.com'  # Your email address
+                    try:
+                              send_mail(subject, message, sender_email, [recipient_email])
+                              response_data = {'success': 'Message sent successfully.'}
+                              status_code = status.HTTP_200_OK
+                    except Exception as e:
+                              response_data = {'error': str(e)}
+                              status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+                    return Response(response_data, status=status_code)
