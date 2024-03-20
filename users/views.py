@@ -232,8 +232,10 @@ class UserAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data)
+                              serializer = self.get_serializer(instance, data=request.data,
+                                                               context={'include_array_fields': True})
                               serializer.is_valid(raise_exception=True)
+                              instance = serializer.save()
 
                               # Check if 'aprofilephoto' is present in the request data
                               if 'aprofilephoto' in request.data:
