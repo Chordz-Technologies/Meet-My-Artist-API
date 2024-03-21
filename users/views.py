@@ -232,26 +232,20 @@ class UserAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data,
-                                                               context={'include_array_fields': True})
+                              serializer = self.get_serializer(instance, data=request.data, partial=True)
                               serializer.is_valid(raise_exception=True)
-                              instance = serializer.save()
+                              serializer.save()
 
-                              # Check if 'aprofilephoto' is present in the request data
+                              # Handle image update if 'aprofilephoto' or 'oprofilephoto' is present in the request data
                               if 'aprofilephoto' in request.data:
                                         instance.aprofilephoto = request.data['aprofilephoto']
-                              # Check if 'oprofilephoto' is present in the request data
                               elif 'oprofilephoto' in request.data:
                                         instance.oprofilephoto = request.data['oprofilephoto']
-                              else:
-                                        # If neither 'aprofilephoto' nor 'oprofilephoto' is present,
-                                        # retain the existing profile photo path
-                                        instance.aprofilephoto = instance.aprofilephoto
-                                        instance.oprofilephoto = instance.oprofilephoto
 
-                              # Save the instance after updating the profile photo path
+                              # Save the instance after updating using the serializer
                               instance.save()
 
+                              # Return success response with updated data
                               return Response({'status': 'success', 'message': 'User updated successfully',
                                                'updated_user': serializer.data})
                     except Exception as e:
