@@ -9,9 +9,10 @@ from django.db import transaction
 from django.core.exceptions import RequestDataTooBig
 from django.core.mail import send_mail
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpRequest
+from django.urls import reverse
 from django.core.files.storage import FileSystemStorage
-from django.db.models import Max, Count, CharField, TextField
+from django.db.models import Max, Count, CharField, TextField, Q
 from rest_framework import status
 from rest_framework import generics
 from rest_framework.response import Response
@@ -29,7 +30,6 @@ from event.serializers import EventSerializer
 from products.serializers import ProductSerializer
 from artistcategories.serializers import ArtistcategoriesSerializer
 from businesscategories.models import Businesscategories
-from django.db.models import Q
 
 # API for Users
 class UserAPI(ModelViewSet):
@@ -194,21 +194,28 @@ class UserAPI(ModelViewSet):
                                         new_file_name = f'user_{instance.uid}.png'
 
                                         # Create the new file path
-                                        new_file_path = os.path.join(os.path.dirname(current_file_path),
-                                                                     new_file_name)
+                                        new_file_path = os.path.join(os.path.dirname(current_file_path), new_file_name)
 
-                                        # Delete the old file if it exists
-                                        if os.path.exists(new_file_path):
-                                                  os.remove(new_file_path)
+                                        # Create the directory if it doesn't exist
+                                        directory = os.path.dirname(new_file_path)
+                                        if not os.path.exists(directory):
+                                                  os.makedirs(directory)
 
-                                        # Rename the file
-                                        os.rename(current_file_path, new_file_path)
+                                        # Check if the file exists before renaming
+                                        if os.path.exists(current_file_path):
+                                                  # Rename the file using the correct new file path
+                                                  os.rename(current_file_path, new_file_path)
 
-                                        # Update the instance with the new file name
-                                        if instance.utypeartist == 1:
-                                                  instance.aprofilephoto.name = new_file_path
+                                                  # Update the instance with the new file name (relative path)
+                                                  if instance.utypeartist == 1:
+                                                            instance.aprofilephoto.name = os.path.relpath(new_file_path,
+                                                                                                          settings.MEDIA_ROOT_PROFILE)
+                                                  else:
+                                                            instance.oprofilephoto.name = os.path.relpath(new_file_path,
+                                                                                                          settings.MEDIA_ROOT_PROFILE)
                                         else:
-                                                  instance.oprofilephoto.name = new_file_path
+                                                  raise FileNotFoundError(
+                                                            f"The file '{current_file_path}' does not exist.")
 
                               # Update the instance in the database with the new file name
                               instance.save()
@@ -232,20 +239,18 @@ class UserAPI(ModelViewSet):
           def update(self, request, *args, **kwargs):
                     try:
                               instance = self.get_object()
-                              serializer = self.get_serializer(instance, data=request.data, partial=True)
+                              serializer = self.get_serializer(instance, data=request.data)
                               serializer.is_valid(raise_exception=True)
-                              serializer.save()
 
-                              # Handle image update if 'aprofilephoto' or 'oprofilephoto' is present in the request data
-                              if 'aprofilephoto' in request.data:
+                              # Check and update profile photos if present in the request data
+                              if 'aprofilephoto' in request.data and request.data['aprofilephoto'] != "":
                                         instance.aprofilephoto = request.data['aprofilephoto']
-                              elif 'oprofilephoto' in request.data:
+                              if 'oprofilephoto' in request.data and request.data['oprofilephoto'] != "":
                                         instance.oprofilephoto = request.data['oprofilephoto']
 
-                              # Save the instance after updating using the serializer
+                              # Save the instance after updating
                               instance.save()
 
-                              # Return success response with updated data
                               return Response({'status': 'success', 'message': 'User updated successfully',
                                                'updated_user': serializer.data})
                     except Exception as e:

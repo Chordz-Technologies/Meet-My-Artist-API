@@ -14,5 +14,5 @@ urlpatterns = [
           path('deleteProduct/<int:pk>/', ProductsAPI.as_view({'delete': 'destroy'})),
 
           # path('addProductPhoto/', AddProductImage.as_view()),
-          path('getProductPhoto/<int:productid>/', GetProductPhoto.as_view()),
+          path('getProductPhoto/<int:pid>/', GetProductPhoto.as_view()),
 ]
