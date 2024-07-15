@@ -10,7 +10,6 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/dev/ref/settings/
 """
 
-from dotenv import load_dotenv
 from pathlib import Path
 import os
 
@@ -119,15 +118,6 @@ AUTH_PASSWORD_VALIDATORS = [
                     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
           },
 ]
-
-load_dotenv()
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'prajwalpunekar9565@gmail.com'
-EMAIL_HOST_PASSWORD = os.getenv('SMTP')
-EMAIL_USE_TLS = True  # or False if not using TLS
 
 # Internationalization
 # https://docs.djangoproject.com/en/dev/topics/i18n/
