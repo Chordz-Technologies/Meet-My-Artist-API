@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-0o33+&h9$-e(jzyom-81z@48ih!pnejr1b10+u4(pq+%h!_*lp
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['192.168.0.108', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -47,7 +47,6 @@ INSTALLED_APPS = [
           'products',
           'subscription',
           'users',
-          'transactions',
           'rest_framework',
 ]
 
@@ -118,6 +117,9 @@ AUTH_PASSWORD_VALIDATORS = [
                     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
           },
 ]
+
+RAZORPAY_API_KEY = 'rzp_live_dbdGN8afzHsBEq'
+RAZORPAY_API_SECRET = 'ZDe5WIylkkaeMSgYQFJpKgQT'
 
 # Internationalization
 # https://docs.djangoproject.com/en/dev/topics/i18n/

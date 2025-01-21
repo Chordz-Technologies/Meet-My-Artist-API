@@ -426,7 +426,10 @@ class UserLoginAPI(APIView):
                                                                                           {'message': 'Valid User',
                                                                                            'user_type': user_type,
                                                                                            'user_id': user.uid,
-                                                                                           'status': user_status},
+                                                                                           'status': user_status,
+                                                                                           'name': user.uname,
+                                                                                           'email': user.uemail,
+                                                                                           'contact': user.uwhatsappno},
                                                                                           status=status.HTTP_200_OK)
                                                                       else:
                                                                                 return Response({
