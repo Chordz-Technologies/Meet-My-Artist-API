@@ -16,27 +16,30 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework import permissions
 
 schema_view = get_schema_view(
-          openapi.Info(
-                    title='MeetMyArtist API',
-                    default_version='V1',
-          ),
-          public=True,
-          permission_classes=(permissions.AllowAny,),
+     openapi.Info(
+          title='MeetMyArtist API',
+          default_version='V1',
+     ),
+     public=True,
+     permission_classes=(permissions.AllowAny,),
 )
 
 urlpatterns = [
-          path('admin/', admin.site.urls),
-          path('', include('adminartist.urls')),
-          path('', include('businesscategories.urls')),
-          path('', include('artistcategories.urls')),
-          path('', include('event.urls')),
-          path('', include('products.urls')),
-          path('', include('subscription.urls')),
-          path('', include('users.urls')),
-          path('', schema_view.with_ui('swagger', cache_timeout=0), name='Swagger UI')
-]
+                   path('admin/', admin.site.urls),
+                   path('', include('adminartist.urls')),
+                   path('', include('businesscategories.urls')),
+                   path('', include('artistcategories.urls')),
+                   path('', include('event.urls')),
+                   path('', include('products.urls')),
+                   path('', include('subscription.urls')),
+                   path('', include('users.urls')),
+                   path('', include('transactions.urls')),
+                   path('', schema_view.with_ui('swagger', cache_timeout=0), name='Swagger UI')
+              ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
